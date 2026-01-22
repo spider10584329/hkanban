@@ -1,0 +1,231 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+model Category {
+  id          Int       @id @default(autoincrement())
+  manager_id  Int
+  name        String    @db.VarChar(100)
+  description String?   @db.Text
+  icon        String?   @db.VarChar(255)
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime
+  products    Product[]
+
+  @@index([manager_id])
+  @@index([manager_id, name])
+  @@map("categories")
+}
+
+model DeviceStatus {
+  id               Int       @id @default(autoincrement())
+  manager_id       Int
+  deviceId         String    @db.VarChar(100)
+  deviceType       String    @db.VarChar(50)
+  deviceName       String?   @db.VarChar(255)
+  firmwareVersion  String?   @db.VarChar(50)
+  batteryLevel     Int?
+  isOnline         Int       @default(1) @db.TinyInt
+  lastSyncAt       DateTime?
+  lastButtonPress  DateTime?
+  currentDisplay   String?   @db.VarChar(100)
+  displayMessage   String?   @db.Text
+  location         String?   @db.VarChar(255)
+  installationDate DateTime?
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime
+
+  @@unique([manager_id, deviceId], map: "unique_manager_device")
+  @@index([manager_id])
+  @@index([manager_id, isOnline])
+  @@map("device_status")
+}
+
+model OrderItem {
+  id                     Int                   @id @default(autoincrement())
+  manager_id             Int
+  orderId                Int
+  productId              Int
+  replenishmentRequestId Int?
+  quantity               Int
+  unitPrice              Decimal?              @db.Decimal(10, 2)
+  totalPrice             Decimal?              @db.Decimal(10, 2)
+  receivedQuantity       Int?
+  damageQuantity         Int?
+  notes                  String?               @db.Text
+  createdAt              DateTime              @default(now())
+  updatedAt              DateTime
+  order                  Order                 @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  product                Product               @relation(fields: [productId], references: [id])
+  replenishmentRequest   ReplenishmentRequest? @relation(fields: [replenishmentRequestId], references: [id])
+
+  @@index([manager_id])
+  @@index([manager_id, orderId])
+  @@index([orderId])
+  @@index([productId])
+  @@index([replenishmentRequestId])
+  @@map("order_items")
+}
+
+model Order {
+  id               Int         @id @default(autoincrement())
+  manager_id       Int
+  orderNumber      String      @db.VarChar(50)
+  supplierId       Int
+  status           String      @db.VarChar(50)
+  orderDate        DateTime    @default(now())
+  expectedDelivery DateTime?
+  actualDelivery   DateTime?
+  trackingNumber   String?     @db.VarChar(255)
+  trackingUrl      String?     @db.VarChar(500)
+  receivedById     Int?
+  receivedAt       DateTime?
+  receiptNotes     String?     @db.Text
+  totalAmount      Decimal?    @db.Decimal(10, 2)
+  createdAt        DateTime    @default(now())
+  updatedAt        DateTime
+  orderItems       OrderItem[]
+  receivedBy       User?       @relation(fields: [receivedById], references: [id])
+  supplier         Supplier    @relation(fields: [supplierId], references: [id])
+
+  @@unique([manager_id, orderNumber], map: "unique_manager_ordernumber")
+  @@index([manager_id])
+  @@index([manager_id, orderDate])
+  @@index([manager_id, status])
+  @@index([receivedById])
+  @@index([supplierId])
+  @@map("orders")
+}
+
+model Product {
+  id                    Int                    @id @default(autoincrement())
+  manager_id            Int
+  name                  String                 @db.VarChar(255)
+  description           String?                @db.Text
+  sku                   String?                @db.VarChar(100)
+  categoryId            Int
+  supplierId            Int?
+  location              String                 @db.VarChar(255)
+  storageRequirements   String?                @db.Text
+  reorderThreshold      Int?
+  standardOrderQty      Int?
+  unitPrice             Decimal?               @db.Decimal(10, 2)
+  qrCodeUrl             String?                @db.VarChar(500)
+  qrCodeImagePath       String?                @db.VarChar(500)
+  einkDeviceId          String?                @db.VarChar(100)
+  hasEinkDevice         Int                    @default(0) @db.TinyInt
+  isActive              Int                    @default(1) @db.TinyInt
+  createdById           Int
+  createdAt             DateTime               @default(now())
+  updatedAt             DateTime
+  orderItems            OrderItem[]
+  category              Category               @relation(fields: [categoryId], references: [id])
+  createdBy             User                   @relation(fields: [createdById], references: [id])
+  supplier              Supplier?              @relation(fields: [supplierId], references: [id])
+  replenishmentRequests ReplenishmentRequest[]
+
+  @@unique([manager_id, einkDeviceId], map: "unique_manager_eink")
+  @@unique([manager_id, qrCodeUrl], map: "unique_manager_qrcode")
+  @@unique([manager_id, sku], map: "unique_manager_sku")
+  @@index([categoryId], map: "products_categoryId_fkey")
+  @@index([createdById])
+  @@index([manager_id, categoryId])
+  @@index([manager_id])
+  @@index([manager_id, isActive])
+  @@index([manager_id, supplierId])
+  @@index([supplierId], map: "products_supplierId_fkey")
+  @@map("products")
+}
+
+model ReplenishmentRequest {
+  id              Int         @id @default(autoincrement())
+  manager_id      Int
+  productId       Int
+  requestedById   Int
+  requestMethod   String      @db.VarChar(20)
+  deviceInfo      String?     @db.VarChar(255)
+  requestedQty    Int?
+  location        String      @db.VarChar(255)
+  notes           String?     @db.Text
+  status          String      @db.VarChar(50)
+  priority        String      @default("NORMAL") @db.VarChar(20)
+  approvedById    Int?
+  approvedAt      DateTime?
+  rejectionReason String?     @db.Text
+  createdAt       DateTime    @default(now())
+  updatedAt       DateTime
+  completedAt     DateTime?
+  orderItems      OrderItem[]
+  approvedBy      User?       @relation("ApprovedRequests", fields: [approvedById], references: [id])
+  product         Product     @relation(fields: [productId], references: [id])
+  requestedBy     User        @relation("CreatedRequests", fields: [requestedById], references: [id])
+
+  @@index([approvedById])
+  @@index([manager_id, createdAt])
+  @@index([manager_id])
+  @@index([manager_id, productId])
+  @@index([manager_id, status])
+  @@index([productId])
+  @@index([requestedById])
+  @@map("replenishment_requests")
+}
+
+model StockHistory {
+  id         Int      @id @default(autoincrement())
+  manager_id Int
+  productId  Int
+  eventType  String   @db.VarChar(50)
+  quantity   Int
+  userId     Int?
+  orderId    Int?
+  requestId  Int?
+  notes      String?  @db.Text
+  timestamp  DateTime @default(now())
+
+  @@index([manager_id, eventType])
+  @@index([manager_id])
+  @@index([manager_id, productId])
+  @@index([manager_id, timestamp])
+  @@index([productId])
+  @@map("stock_history")
+}
+
+model Supplier {
+  id          Int       @id @default(autoincrement())
+  manager_id  Int
+  name        String    @db.VarChar(255)
+  contactName String?   @db.VarChar(255)
+  phone       String?   @db.VarChar(50)
+  email       String?   @db.VarChar(255)
+  address     String?   @db.Text
+  isActive    Int       @default(1) @db.TinyInt
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime
+  orders      Order[]
+  products    Product[]
+
+  @@index([manager_id])
+  @@index([manager_id, isActive])
+  @@map("suppliers")
+}
+
+model User {
+  id                    Int                    @id @default(autoincrement())
+  manager_id            Int
+  username              String                 @unique(map: "username") @db.VarChar(255)
+  password              String                 @db.VarChar(255)
+  isActive              Int?                   @default(0) @db.TinyInt
+  passwordRequest       String?                @db.VarChar(255)
+  isPasswordRequest     Int?                   @default(0) @db.TinyInt
+  receivedOrders        Order[]
+  createdProducts       Product[]
+  approvedRequests      ReplenishmentRequest[] @relation("ApprovedRequests")
+  replenishmentRequests ReplenishmentRequest[] @relation("CreatedRequests")
+
+  @@map("users")
+}
