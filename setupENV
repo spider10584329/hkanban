@@ -1,9 +1,13 @@
 # Database Configuration
-DATABASE_URL="mysql://root:@localhost:3306/kanban"
+# Added connection pool params: pool_timeout prevents hanging, connection_limit prevents exhaustion
+DATABASE_URL="mysql://root:@localhost:3306/kanban?connection_limit=10&pool_timeout=10&connect_timeout=10"
 
 # JWT Secret (change this to a secure random string in production)
 JWT_SECRET="your-super-secret-jwt-key-change-this-in-production"
 
 # Next.js
 NEXT_PUBLIC_APP_URL="http://localhost:3000"
-PULSEPOINT_PROJECT_ID=19
+PULSEPOINT_PROJECT_ID=22
+MINEW_API_BASE=https://api.minew.com
+MINEW_API_KEY=your_minew_api_key
+MINEW_API_SECRET=your_minew_api_secret
