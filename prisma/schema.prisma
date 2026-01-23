@@ -214,6 +214,15 @@ model Supplier {
   @@map("suppliers")
 }
 
+model ApiKey {
+  id          Int    @id @default(autoincrement())
+  manager_id Int
+  api_key     String @db.VarChar(255)
+  created_at  String @db.VarChar(255)
+
+  @@map("apikey")
+}
+
 model User {
   id                    Int                    @id @default(autoincrement())
   manager_id            Int

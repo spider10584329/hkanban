@@ -7,7 +7,7 @@ const registerSchema = z.object({
   adminEmail: z.string().email('Invalid admin email address'),
   username: z.string().min(3, 'Username must be at least 3 characters'),
   password: z.string().min(8, 'Password must be at least 8 characters'),
-  customerId: z.number().optional(),
+  customerId: z.number(),
 });
 
 export async function POST(request: NextRequest) {

@@ -307,27 +307,27 @@ export default function ScanPage() {
   };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4 sm:space-y-6 p-4 sm:p-0">
       <div>
-        <h1 className="text-2xl font-bold text-gray-800">Scan QR Code</h1>
-        <p className="text-sm text-gray-600 mt-1">Scan product QR code to request replenishment</p>
+        <h1 className="text-xl sm:text-2xl font-bold text-gray-800">Scan QR Code</h1>
+        <p className="text-xs sm:text-sm text-gray-600 mt-1">Scan product QR code to request replenishment</p>
       </div>
 
       {error && (
-        <div className="bg-red-50 border border-red-200 rounded-lg p-4">
-          <div className="flex items-start gap-3">
-            <svg className="w-5 h-5 text-red-600 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <div className="bg-red-50 border border-red-200 rounded-lg p-3 sm:p-4">
+          <div className="flex items-start gap-2 sm:gap-3">
+            <svg className="w-4 h-4 sm:w-5 sm:h-5 text-red-600 mt-0.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
             </svg>
-            <div>
-              <p className="text-sm font-medium text-red-900">Error</p>
-              <p className="text-sm text-red-700 mt-1">{error}</p>
+            <div className="flex-1 min-w-0">
+              <p className="text-xs sm:text-sm font-medium text-red-900">Error</p>
+              <p className="text-xs sm:text-sm text-red-700 mt-1 break-words">{error}</p>
             </div>
             <button
               onClick={() => setError(null)}
-              className="ml-auto text-red-600 hover:text-red-800"
+              className="ml-2 text-red-600 hover:text-red-800 flex-shrink-0"
             >
-              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <svg className="w-4 h-4 sm:w-5 sm:h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
               </svg>
             </button>
@@ -336,17 +336,17 @@ export default function ScanPage() {
       )}
 
       {scannedProduct && (
-        <div className="bg-green-50 border border-green-200 rounded-lg p-4">
-          <div className="flex items-start gap-3">
-            <svg className="w-5 h-5 text-green-600 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <div className="bg-green-50 border border-green-200 rounded-lg p-3 sm:p-4">
+          <div className="flex items-start gap-2 sm:gap-3">
+            <svg className="w-4 h-4 sm:w-5 sm:h-5 text-green-600 mt-0.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
             </svg>
-            <div className="flex-1">
-              <p className="text-sm font-medium text-green-900">Product Found!</p>
-              <p className="text-sm text-green-700 mt-1">
+            <div className="flex-1 min-w-0">
+              <p className="text-xs sm:text-sm font-medium text-green-900">Product Found!</p>
+              <p className="text-xs sm:text-sm text-green-700 mt-1 break-words">
                 <strong>{scannedProduct.name}</strong> - {scannedProduct.categoryName}
               </p>
-              <p className="text-xs text-green-600 mt-1">
+              <p className="text-xs text-green-600 mt-1 break-words">
                 Location: {scannedProduct.location} | SKU: {scannedProduct.sku || 'N/A'}
               </p>
             </div>
@@ -355,23 +355,23 @@ export default function ScanPage() {
       )}
 
       {/* QR Scanner Section */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
         {/* Scanner */}
-        <div className="bg-white rounded-lg shadow p-6">
-          <h2 className="text-lg font-semibold text-gray-800 mb-4">QR Code Scanner</h2>
+        <div className="bg-white rounded-lg shadow p-4 sm:p-6">
+          <h2 className="text-base sm:text-lg font-semibold text-gray-800 mb-3 sm:mb-4">QR Code Scanner</h2>
 
-          <div className="aspect-square bg-gray-100 rounded-lg flex items-center justify-center mb-4 overflow-hidden">
+          <div className="aspect-square bg-gray-100 rounded-lg flex items-center justify-center mb-3 sm:mb-4 overflow-hidden">
             {scanning ? (
               <div id={scannerElementId} className="w-full h-full" />
             ) : (
-              <div className="text-center p-6">
-                <svg className="w-24 h-24 mx-auto text-gray-400 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <div className="text-center p-4 sm:p-6">
+                <svg className="w-16 h-16 sm:w-24 sm:h-24 mx-auto text-gray-400 mb-3 sm:mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v1m6 11h2m-6 0h-2v4m0-11v3m0 0h.01M12 12h4.01M16 20h4M4 12h4m12 0h.01M5 8h2a1 1 0 001-1V5a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1zm12 0h2a1 1 0 001-1V5a1 1 0 00-1-1h-2a1 1 0 00-1 1v2a1 1 0 001 1zM5 20h2a1 1 0 001-1v-2a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1z" />
                 </svg>
-                <p className="text-gray-600 mb-4">Position QR code within frame to scan</p>
+                <p className="text-xs sm:text-sm text-gray-600 mb-3 sm:mb-4 px-2">Position QR code within frame to scan</p>
                 <button
                   onClick={startScanning}
-                  className="px-6 py-2 bg-gray-900 text-white rounded-lg hover:bg-black transition-colors"
+                  className="px-4 sm:px-6 py-2 bg-gray-900 text-white rounded-lg hover:bg-black transition-colors text-sm sm:text-base"
                 >
                   Start Camera
                 </button>
@@ -382,22 +382,22 @@ export default function ScanPage() {
           {scanning && (
             <button
               onClick={stopScanning}
-              className="w-full px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors"
+              className="w-full px-3 sm:px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors text-sm sm:text-base"
             >
               Stop Scanning
             </button>
           )}
 
-          <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mt-4">
-            <div className="flex items-start gap-3">
-              <div className="text-blue-600 mt-1">
-                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 sm:p-4 mt-3 sm:mt-4">
+            <div className="flex items-start gap-2 sm:gap-3">
+              <div className="text-blue-600 mt-1 flex-shrink-0">
+                <svg className="w-4 h-4 sm:w-5 sm:h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                 </svg>
               </div>
               <div>
-                <p className="text-sm text-blue-900 font-medium">How to scan</p>
-                <p className="text-sm text-blue-700 mt-1">
+                <p className="text-xs sm:text-sm text-blue-900 font-medium">How to scan</p>
+                <p className="text-xs sm:text-sm text-blue-700 mt-1">
                   Point your camera at the QR code on the product shelf or storage location. The system will automatically detect the product and create a replenishment request.
                 </p>
               </div>
@@ -406,12 +406,12 @@ export default function ScanPage() {
         </div>
 
         {/* Manual Entry */}
-        <div className="bg-white rounded-lg shadow p-6">
-          <h2 className="text-lg font-semibold text-gray-800 mb-4">Manual Entry</h2>
+        <div className="bg-white rounded-lg shadow p-4 sm:p-6">
+          <h2 className="text-base sm:text-lg font-semibold text-gray-800 mb-3 sm:mb-4">Manual Entry</h2>
 
-          <form onSubmit={handleManualSubmit} className="space-y-4">
+          <form onSubmit={handleManualSubmit} className="space-y-3 sm:space-y-4">
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
+              <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-1 sm:mb-2">
                 Product SKU or QR Code <span className="text-red-500">*</span>
               </label>
               <input
@@ -419,13 +419,13 @@ export default function ScanPage() {
                 value={manualCode}
                 onChange={(e) => setManualCode(e.target.value)}
                 placeholder="Enter product code..."
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-gray-500"
+                className="w-full px-3 sm:px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-gray-500 text-sm sm:text-base"
                 required
               />
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
+              <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-1 sm:mb-2">
                 Location <span className="text-red-500">*</span>
               </label>
               <input
@@ -433,29 +433,29 @@ export default function ScanPage() {
                 value={manualLocation}
                 onChange={(e) => setManualLocation(e.target.value)}
                 placeholder="e.g., 2nd Floor Linen Room"
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-gray-500"
+                className="w-full px-3 sm:px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-gray-500 text-sm sm:text-base"
                 required
               />
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">Quantity Needed (Optional)</label>
+              <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-1 sm:mb-2">Quantity Needed (Optional)</label>
               <input
                 type="number"
                 value={manualQuantity}
                 onChange={(e) => setManualQuantity(e.target.value)}
                 placeholder="Leave blank for standard quantity"
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-gray-500"
+                className="w-full px-3 sm:px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-gray-500 text-sm sm:text-base"
                 min="1"
               />
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">Priority</label>
+              <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-1 sm:mb-2">Priority</label>
               <select
                 value={manualPriority}
                 onChange={(e) => setManualPriority(e.target.value as 'NORMAL' | 'HIGH' | 'URGENT')}
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-gray-500"
+                className="w-full px-3 sm:px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-gray-500 text-sm sm:text-base"
               >
                 <option value="NORMAL">Normal</option>
                 <option value="HIGH">High</option>
@@ -464,20 +464,20 @@ export default function ScanPage() {
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">Notes (Optional)</label>
+              <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-1 sm:mb-2">Notes (Optional)</label>
               <textarea
                 rows={3}
                 value={manualNotes}
                 onChange={(e) => setManualNotes(e.target.value)}
                 placeholder="Add any additional information..."
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-gray-500 resize-none"
+                className="w-full px-3 sm:px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-gray-500 resize-none text-sm sm:text-base"
               />
             </div>
 
             <button
               type="submit"
               disabled={submitting}
-              className="w-full px-4 py-3 bg-gray-900 text-white rounded-lg hover:bg-black disabled:bg-gray-400 transition-colors font-medium"
+              className="w-full px-3 sm:px-4 py-2.5 sm:py-3 bg-gray-900 text-white rounded-lg hover:bg-black disabled:bg-gray-400 transition-colors font-medium text-sm sm:text-base"
             >
               {submitting ? 'Submitting...' : 'Submit Request'}
             </button>
@@ -487,31 +487,31 @@ export default function ScanPage() {
 
       {/* Recent Scans */}
       <div className="bg-white rounded-lg shadow overflow-hidden">
-        <div className="p-6 border-b border-gray-200">
-          <h2 className="text-lg font-semibold text-gray-800">Recent Scans</h2>
+        <div className="p-4 sm:p-6 border-b border-gray-200">
+          <h2 className="text-base sm:text-lg font-semibold text-gray-800">Recent Scans</h2>
         </div>
         <div className="divide-y divide-gray-200">
           {recentScans.length === 0 ? (
-            <div className="p-6 text-center text-gray-500">No recent scans</div>
+            <div className="p-4 sm:p-6 text-center text-gray-500 text-xs sm:text-sm">No recent scans</div>
           ) : (
             recentScans.map((scan) => (
-              <div key={scan.id} className="p-4 hover:bg-gray-50 transition-colors">
-                <div className="flex items-start justify-between">
-                  <div className="flex-1">
-                    <div className="flex items-center gap-2">
-                      <h3 className="text-sm font-medium text-gray-900">{scan.productName}</h3>
-                      <span className="px-2 py-0.5 text-xs font-semibold rounded-full bg-green-100 text-green-800">
+              <div key={scan.id} className="p-3 sm:p-4 hover:bg-gray-50 transition-colors">
+                <div className="flex items-start justify-between gap-2 sm:gap-3">
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <h3 className="text-xs sm:text-sm font-medium text-gray-900 break-words">{scan.productName}</h3>
+                      <span className="px-2 py-0.5 text-xs font-semibold rounded-full bg-green-100 text-green-800 whitespace-nowrap">
                         {scan.status}
                       </span>
                     </div>
-                    <p className="text-sm text-gray-600 mt-1">
+                    <p className="text-xs sm:text-sm text-gray-600 mt-1 break-words">
                       {scan.sku && <span className="font-mono">SKU: {scan.sku}</span>}
                       {scan.sku && ' • '}
                       <span>{scan.location}</span>
                     </p>
                     <p className="text-xs text-gray-500 mt-1">{formatTime(scan.timestamp)}</p>
                   </div>
-                  <svg className="w-5 h-5 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <svg className="w-4 h-4 sm:w-5 sm:h-5 text-green-600 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
                   </svg>
                 </div>

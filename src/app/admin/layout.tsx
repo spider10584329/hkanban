@@ -48,12 +48,21 @@ const menuItems = [
     path: '/admin/orders',
     icon: '/svg/inventory.svg',
   },
+  
+  {
+    id: 'apikey',
+    label: 'API Key',
+    path: '/admin/apikey',
+    icon: '/svg/key.svg',
+  },
+
   {
     id: 'users',
     label: 'Users',
     path: '/admin/users',
     icon: '/svg/users.svg',
   },
+ 
 ];
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
