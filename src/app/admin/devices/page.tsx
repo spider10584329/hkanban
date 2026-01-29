@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { useNotification } from '@/hooks/useNotification';
 
 interface Device {
   id: number;
@@ -29,6 +30,8 @@ interface Stats {
 }
 
 export default function DevicesPage() {
+  const notification = useNotification();
+  const [activeTab, setActiveTab] = useState<'store' | 'template' | 'gateway' | 'esl'>('esl');
   const [devices, setDevices] = useState<Device[]>([]);
   const [stats, setStats] = useState<Stats>({
     totalDevices: 0,
@@ -59,6 +62,90 @@ export default function DevicesPage() {
 
   // Sync state
   const [syncing, setSyncing] = useState(false);
+  
+  // Minew sync state
+  const [minewSyncing, setMinewSyncing] = useState(false);
+  const [selectedStoreId, setSelectedStoreId] = useState<string>('');
+  const [minewStores, setMinewStores] = useState<Array<{ storeId: string; name: string; number?: string }>>([]);
+
+  // Templates state
+  const [templates, setTemplates] = useState<Array<{
+    id: string;
+    name: string;
+    storeId: string;
+    screenSize: string;
+    color: string;
+  }>>([]);
+  const [templatesLoading, setTemplatesLoading] = useState(false);
+  const [templatesError, setTemplatesError] = useState<string | null>(null);
+  
+  // Stores loading state
+  const [storesLoading, setStoresLoading] = useState(false);
+
+  // Gateway state (Minew cloud gateways matched with local DB)
+  const [minewGateways, setMinewGateways] = useState<Array<{
+    id: string;
+    name: string;
+    mac: string;
+    storeId: string;
+    mode: number; // 1 = online, 0 = offline
+    version?: string;
+    updateTime?: string;
+    localId?: number; // Local DB id for deletion
+    localCreatedAt?: string;
+  }>>([]);
+  const [minewGatewaysLoading, setMinewGatewaysLoading] = useState(false);
+  
+  // Local database gateways
+  const [gateways, setGateways] = useState<Array<{
+    id: number;
+    name: string;
+    mac_address: string;
+    manager_id: number;
+    created_at: string;
+  }>>([]);
+  const [gatewaysLoading, setGatewaysLoading] = useState(false);
+  
+  // ESL Tags state
+  const [eslTags, setEslTags] = useState<Array<{
+    id: string;
+    mac: string;
+    storeId: string;
+    screenSize: string;
+    screenInfo: {
+      inch: number;
+      width: number;
+      height: number;
+      color: string;
+    };
+    isOnline: string; // '1' = offline, '2' = online
+    battery: number;
+    bind: string; // '0' = unbound, '1' = bound
+    updateTime?: string;
+  }>>([]);
+  const [eslTagsLoading, setEslTagsLoading] = useState(false);
+  const [isGatewayModalOpen, setIsGatewayModalOpen] = useState(false);
+  const [gatewayFormData, setGatewayFormData] = useState({
+    name: '',
+    macAddress: '',
+  });
+  const [gatewaySubmitting, setGatewaySubmitting] = useState(false);
+  const [gatewayFormError, setGatewayFormError] = useState<string | null>(null);
+
+  // Confirmation modal state
+  const [confirmModal, setConfirmModal] = useState<{
+    isOpen: boolean;
+    title: string;
+    message: string;
+    onConfirm: () => void;
+    confirmText?: string;
+    confirmColor?: string;
+  }>({
+    isOpen: false,
+    title: '',
+    message: '',
+    onConfirm: () => {},
+  });
 
   // Get manager_id from authenticated user
   const [managerId, setManagerId] = useState<number | null>(null);
@@ -82,8 +169,328 @@ export default function DevicesPage() {
   useEffect(() => {
     if (managerId !== null) {
       fetchDevices();
+      fetchMinewStores();
     }
   }, [managerId]);
+
+  const fetchMinewStores = async () => {
+    setStoresLoading(true);
+    try {
+      console.log('Fetching stores from /api/minew/stores...');
+      const response = await fetch('/api/minew/stores');
+      console.log('Stores API response status:', response.status, response.ok);
+      const data = await response.json();
+      console.log('Minew stores response data:', data);
+      console.log('data.stores exists?', !!data.stores);
+      console.log('data.stores length:', data.stores?.length);
+      
+      if (response.ok && data.stores) {
+        console.log('Setting minewStores to:', data.stores);
+        console.log('First store structure:', data.stores[0]);
+        console.log('First store has storeId?:', data.stores[0]?.storeId);
+        console.log('First store has id?:', data.stores[0]?.id);
+        
+        // Ensure each store has a storeId property
+        const normalizedStores = data.stores.map((store: any) => ({
+          storeId: store.storeId || store.id,
+          name: store.name,
+          number: store.number,
+        }));
+        
+        console.log('Normalized stores:', normalizedStores);
+        setMinewStores(normalizedStores);
+        
+        if (normalizedStores.length > 0 && !selectedStoreId) {
+          setSelectedStoreId(normalizedStores[0].storeId);
+        }
+      } else {
+        console.log('No stores found or response not OK:', response.ok, data);
+        setMinewStores([]);
+      }
+    } catch (err) {
+      console.error('Error fetching Minew stores:', err);
+      setMinewStores([]);
+    } finally {
+      setStoresLoading(false);
+    }
+  };
+
+  const fetchTemplates = async (storeId: string) => {
+    if (!storeId) {
+      console.warn('fetchTemplates called without storeId');
+      setTemplatesError('Please select a store first');
+      setTemplates([]);
+      return;
+    }
+
+    setTemplatesLoading(true);
+    setTemplatesError(null);
+    try {
+      console.log(`Fetching templates for store: ${storeId}`);
+      const response = await fetch(`/api/minew/templates?storeId=${storeId}&page=1&size=50`);
+      const data = await response.json();
+      console.log('Templates API response:', data);
+
+      if (response.ok && data.templates) {
+        console.log(`Received ${data.templates.length} templates`);
+        setTemplates(data.templates);
+        setTemplatesError(null);
+      } else {
+        const errorMsg = data.error || 'Unknown error';
+        const fullError = `${errorMsg}${data.details ? ': ' + data.details : ''}`;
+        console.error('Templates fetch error:', fullError);
+        setTemplatesError(fullError);
+        setTemplates([]);
+      }
+    } catch (err) {
+      const errorMsg = err instanceof Error ? err.message : 'Network error';
+      console.error('Templates fetch exception:', err);
+      setTemplatesError(errorMsg);
+      setTemplates([]);
+    } finally {
+      setTemplatesLoading(false);
+    }
+  };
+
+  const fetchMinewGateways = async (storeId: string) => {
+    if (!storeId || !managerId) return;
+
+    setMinewGatewaysLoading(true);
+    try {
+      // Fetch gateways from both sources in parallel
+      const [minewResponse, localResponse] = await Promise.all([
+        fetch(`/api/minew/gateways?storeId=${storeId}`),
+        fetch(`/api/gateway?manager_id=${managerId}`)
+      ]);
+
+      const minewData = await minewResponse.json();
+      const localData = await localResponse.json();
+
+      if (minewResponse.ok && minewData.gateways && localResponse.ok && localData.gateways) {
+        const minewGatewaysFromCloud = minewData.gateways;
+        const localGateways = localData.gateways;
+
+        // Match gateways by MAC address (only show gateways owned by this manager)
+        const matchedGateways = minewGatewaysFromCloud
+          .map((minewGw: any) => {
+            const normalizedMinewMac = minewGw.mac.replace(/[:-]/g, '').toUpperCase();
+
+            // Find matching local gateway
+            const localMatch = localGateways.find((localGw: any) => {
+              const normalizedLocalMac = localGw.mac_address.replace(/[:-]/g, '').toUpperCase();
+              return normalizedLocalMac === normalizedMinewMac;
+            });
+
+            // Only include if there's a local match (i.e., belongs to this manager)
+            if (localMatch) {
+              return {
+                ...minewGw,
+                localId: localMatch.id,
+                localCreatedAt: localMatch.created_at,
+              };
+            }
+            return null;
+          })
+          .filter((gw: any) => gw !== null);
+
+        setMinewGateways(matchedGateways);
+      } else {
+        console.error('Failed to fetch gateways:', minewData.error || localData.error);
+        setMinewGateways([]);
+      }
+    } catch (err) {
+      console.error('Error fetching gateways:', err);
+      setMinewGateways([]);
+    } finally {
+      setMinewGatewaysLoading(false);
+    }
+  };
+
+  const fetchESLTags = async (storeId: string) => {
+    if (!storeId) return;
+
+    setEslTagsLoading(true);
+    try {
+      const response = await fetch(`/api/minew/tags?storeId=${storeId}&page=1&size=50`);
+      const data = await response.json();
+
+      if (response.ok && data.tags) {
+        setEslTags(data.tags);
+      } else {
+        console.error('Failed to fetch ESL tags:', data.error);
+        setEslTags([]);
+      }
+    } catch (err) {
+      console.error('Error fetching ESL tags:', err);
+      setEslTags([]);
+    } finally {
+      setEslTagsLoading(false);
+    }
+  };
+
+  // Fetch templates when store selection changes
+  useEffect(() => {
+    if (selectedStoreId) {
+      fetchTemplates(selectedStoreId);
+      fetchGateways();
+    }
+  }, [selectedStoreId]);
+
+  const fetchGateways = async () => {
+    if (!managerId) return;
+
+    setGatewaysLoading(true);
+    try {
+      const response = await fetch(`/api/gateway?manager_id=${managerId}`);
+      const data = await response.json();
+
+      if (response.ok && data.gateways) {
+        setGateways(data.gateways);
+      } else {
+        console.error('Failed to fetch gateways:', data.error);
+      }
+    } catch (err) {
+      console.error('Error fetching gateways:', err);
+    } finally {
+      setGatewaysLoading(false);
+    }
+  };
+
+  const openGatewayModal = () => {
+    setGatewayFormData({
+      name: '',
+      macAddress: '',
+    });
+    setGatewayFormError(null);
+    setIsGatewayModalOpen(true);
+  };
+
+  const closeGatewayModal = () => {
+    setIsGatewayModalOpen(false);
+    setGatewayFormData({
+      name: '',
+      macAddress: '',
+    });
+    setGatewayFormError(null);
+  };
+
+  const handleGatewaySubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+
+    if (!gatewayFormData.name.trim() || !gatewayFormData.macAddress.trim()) {
+      setGatewayFormError('Name and MAC address are required');
+      return;
+    }
+
+    if (!selectedStoreId) {
+      setGatewayFormError('Please select a store first');
+      return;
+    }
+
+    setGatewaySubmitting(true);
+    setGatewayFormError(null);
+
+    try {
+      const response = await fetch('/api/gateway', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          name: gatewayFormData.name,
+          mac: gatewayFormData.macAddress,
+          manager_id: managerId,
+          storeId: selectedStoreId,
+        }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || 'Failed to add gateway');
+      }
+
+      // Success
+      await fetchGateways();
+      closeGatewayModal();
+      notification.success(
+        'Gateway Registered',
+        `Gateway "${gatewayFormData.name}" has been successfully registered with MAC address ${gatewayFormData.macAddress}`
+      );
+    } catch (err) {
+      setGatewayFormError(err instanceof Error ? err.message : 'Failed to add gateway');
+    } finally {
+      setGatewaySubmitting(false);
+    }
+  };
+
+  const handleDeleteGateway = async (gatewayId: number) => {
+    const gateway = gateways.find(g => g.id === gatewayId);
+    
+    if (!selectedStoreId) {
+      notification.warning('Store Required', 'Please select a Minew store first');
+      return;
+    }
+    
+    setConfirmModal({
+      isOpen: true,
+      title: 'Delete Gateway',
+      message: `Are you sure you want to delete the gateway "${gateway?.name || 'this gateway'}"? This will remove it from both the local database and Minew cloud. This action cannot be undone.`,
+      confirmText: 'Delete',
+      confirmColor: 'red',
+      onConfirm: async () => {
+        try {
+          const response = await fetch(`/api/gateway?id=${gatewayId}&storeId=${selectedStoreId}`, {
+            method: 'DELETE',
+          });
+
+          const data = await response.json();
+
+          if (!response.ok) {
+            throw new Error(data.error || 'Failed to delete gateway');
+          }
+
+          await fetchGateways();
+          notification.success('Gateway Deleted', 'The gateway has been successfully removed from both local database and Minew cloud');
+        } catch (err) {
+          notification.error('Delete Failed', err instanceof Error ? err.message : 'Failed to delete gateway');
+        } finally {
+          setConfirmModal(prev => ({ ...prev, isOpen: false }));
+        }
+      },
+    });
+  };
+
+  const handleMinewSync = async (action: string) => {
+    if (!managerId || !selectedStoreId) {
+      notification.warning('Store Required', 'Please select a Minew store first');
+      return;
+    }
+
+    setMinewSyncing(true);
+    try {
+      const response = await fetch('/api/minew/sync', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          manager_id: managerId,
+          storeId: selectedStoreId,
+          action,
+        }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || 'Minew sync failed');
+      }
+
+      await fetchDevices();
+      notification.success('Sync Complete', data.message || 'Sync completed successfully!');
+    } catch (err) {
+      notification.error('Sync Failed', err instanceof Error ? err.message : 'Minew sync failed');
+    } finally {
+      setMinewSyncing(false);
+    }
+  };
 
   const fetchDevices = async () => {
     if (managerId === null) {
@@ -204,25 +611,33 @@ export default function DevicesPage() {
   };
 
   const handleDelete = async (device: Device) => {
-    if (!confirm(`Are you sure you want to delete device "${device.deviceName || device.deviceId}"? This action cannot be undone.`)) {
-      return;
-    }
+    setConfirmModal({
+      isOpen: true,
+      title: 'Delete Device',
+      message: `Are you sure you want to delete device "${device.deviceName || device.deviceId}"? This action cannot be undone.`,
+      confirmText: 'Delete',
+      confirmColor: 'red',
+      onConfirm: async () => {
+        try {
+          const response = await fetch(`/api/devices?id=${device.id}`, {
+            method: 'DELETE',
+          });
 
-    try {
-      const response = await fetch(`/api/devices?id=${device.id}`, {
-        method: 'DELETE',
-      });
+          const data = await response.json();
 
-      const data = await response.json();
+          if (!response.ok) {
+            throw new Error(data.error || 'Failed to delete device');
+          }
 
-      if (!response.ok) {
-        throw new Error(data.error || 'Failed to delete device');
+          await fetchDevices();
+          notification.success('Device Deleted', `Device "${device.deviceName || device.deviceId}" has been removed`);
+        } catch (err) {
+          notification.error('Delete Failed', err instanceof Error ? err.message : 'Failed to delete device');
+        } finally {
+          setConfirmModal(prev => ({ ...prev, isOpen: false }));
+        }
       }
-
-      await fetchDevices();
-    } catch (err) {
-      alert(err instanceof Error ? err.message : 'Failed to delete device');
-    }
+    });
   };
 
   const handleSyncDevices = async () => {
@@ -245,9 +660,14 @@ export default function DevicesPage() {
       // Refresh device list after sync
       await fetchDevices();
       
-      alert(`Sync complete! ${data.synced} of ${data.total} devices updated.${data.errors ? '\n\nSome errors occurred - check console for details.' : ''}`);
+      const message = `${data.synced} of ${data.total} devices updated successfully`;
+      if (data.errors) {
+        notification.warning('Sync Complete with Warnings', message + '. Some errors occurred - check console for details.');
+      } else {
+        notification.success('Sync Complete', message);
+      }
     } catch (err) {
-      alert(err instanceof Error ? err.message : 'Failed to sync devices');
+      notification.error('Sync Failed', err instanceof Error ? err.message : 'Failed to sync devices');
     } finally {
       setSyncing(false);
     }
@@ -269,7 +689,7 @@ export default function DevicesPage() {
 
       await fetchDevices();
     } catch (err) {
-      alert(err instanceof Error ? err.message : 'Failed to toggle device status');
+      notification.error('Toggle Failed', err instanceof Error ? err.message : 'Failed to toggle device status');
     }
   };
 
@@ -341,217 +761,810 @@ export default function DevicesPage() {
 
   return (
     <div className="space-y-4 sm:space-y-6 p-4 sm:p-0">
-      <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4">
-        <div>
-          <h1 className="text-xl sm:text-2xl font-bold text-gray-800">E-ink Devices</h1>
-          <p className="text-xs sm:text-sm text-gray-600 mt-1">Monitor and manage E-ink display devices</p>
-        </div>
-        <div className="flex flex-col sm:flex-row gap-2 sm:gap-3">
-          <button
-            onClick={handleSyncDevices}
-            disabled={syncing || devices.length === 0}
-            className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:bg-gray-400 transition-colors flex items-center justify-center gap-2 text-sm"
-          >
-            <svg className={`w-4 h-4 sm:w-5 sm:h-5 ${syncing ? 'animate-spin' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-            </svg>
-            <span>{syncing ? 'Syncing...' : 'Sync Status'}</span>
-          </button>
-          <button
-            onClick={openCreateModal}
-            className="px-4 py-2 bg-gray-900 text-white rounded-lg hover:bg-black transition-colors flex items-center justify-center gap-2 text-sm"
-          >
-            <span>+</span>
-            <span>Register Device</span>
-          </button>
-        </div>
+      {/* Header */}
+      <div>
+        <h1 className="text-xl sm:text-2xl font-bold text-gray-800">Minew ESL Devices</h1>
       </div>
 
-      {/* Stats Cards */}
-      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3 sm:gap-4">
-        <div className="bg-white rounded-lg shadow p-4 sm:p-6">
-          <div className="text-xs sm:text-sm text-gray-600">Total Devices</div>
-          <div className="text-xl sm:text-2xl font-bold text-gray-900 mt-1 sm:mt-2">{stats.totalDevices}</div>
-        </div>
-        <div className="bg-green-50 rounded-lg shadow p-4 sm:p-6 border border-green-200">
-          <div className="text-xs sm:text-sm text-green-700">Online</div>
-          <div className="text-xl sm:text-2xl font-bold text-green-700 mt-1 sm:mt-2">{stats.onlineDevices}</div>
-        </div>
-        <div className="bg-red-50 rounded-lg shadow p-4 sm:p-6 border border-red-200">
-          <div className="text-xs sm:text-sm text-red-700">Offline</div>
-          <div className="text-xl sm:text-2xl font-bold text-red-700 mt-1 sm:mt-2">{stats.offlineDevices}</div>
-        </div>
-        <div className="bg-yellow-50 rounded-lg shadow p-4 sm:p-6 border border-yellow-200">
-          <div className="text-xs sm:text-sm text-yellow-700">Low Battery</div>
-          <div className="text-xl sm:text-2xl font-bold text-yellow-700 mt-1 sm:mt-2">{stats.lowBatteryDevices}</div>
-        </div>
-        <div className="bg-blue-50 rounded-lg shadow p-4 sm:p-6 border border-blue-200 col-span-2 sm:col-span-1">
-          <div className="text-xs sm:text-sm text-blue-700">Active Today</div>
-          <div className="text-xl sm:text-2xl font-bold text-blue-700 mt-1 sm:mt-2">{stats.activeToday}</div>
-        </div>
+      {/* Tab Navigation */}
+      <div className="border-b border-gray-200">
+        <nav className="flex gap-4">
+          <button
+            onClick={() => {
+              setActiveTab('store');
+              fetchMinewStores();
+            }}
+            className={`pb-3 px-4 text-sm font-medium border-b-2 transition-colors ${
+              activeTab === 'store'
+                ? 'border-blue-600 text-blue-600'
+                : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+            }`}
+          >
+            Store
+          </button>
+          <button
+            onClick={() => {
+              setActiveTab('template');
+              if (selectedStoreId) fetchTemplates(selectedStoreId);
+            }}
+            className={`pb-3 px-4 text-sm font-medium border-b-2 transition-colors ${
+              activeTab === 'template'
+                ? 'border-blue-600 text-blue-600'
+                : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+            }`}
+          >
+            Template
+          </button>
+          <button
+            onClick={() => {
+              setActiveTab('gateway');
+              if (selectedStoreId) fetchMinewGateways(selectedStoreId);
+              fetchGateways();
+            }}
+            className={`pb-3 px-4 text-sm font-medium border-b-2 transition-colors ${
+              activeTab === 'gateway'
+                ? 'border-blue-600 text-blue-600'
+                : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+            }`}
+          >
+            Gateway
+          </button>
+          <button
+            onClick={() => {
+              setActiveTab('esl');
+              if (selectedStoreId) fetchESLTags(selectedStoreId);
+            }}
+            className={`pb-3 px-4 text-sm font-medium border-b-2 transition-colors ${
+              activeTab === 'esl'
+                ? 'border-blue-600 text-blue-600'
+                : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+            }`}
+          >
+            ESL Label
+          </button>
+        </nav>
       </div>
 
-      {/* Devices Table */}
-      <div className="bg-white rounded-lg shadow overflow-hidden">
-        <div className="p-4 sm:p-6 border-b border-gray-200 space-y-3">
-          <input
-            type="text"
-            placeholder="Search devices..."
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-gray-500 text-sm"
-          />
-          <div className="flex flex-col sm:flex-row gap-3">
-            <select
-              value={statusFilter}
-              onChange={(e) => setStatusFilter(e.target.value)}
-              className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-gray-500 text-sm"
-            >
-              <option value="">All Status</option>
-              <option value="online">Online</option>
-              <option value="offline">Offline</option>
-            </select>
-            <select
-              value={locationFilter}
-              onChange={(e) => setLocationFilter(e.target.value)}
-              className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-gray-500 text-sm"
-            >
-              <option value="">All Locations</option>
-              {locations.map((location) => (
-                <option key={location} value={location}>
-                  {location}
-                </option>
-              ))}
-            </select>
-          </div>
-        </div>
-        <div className="overflow-x-auto">
-          <table className="w-full min-w-[800px]">
-            <thead className="bg-gray-50">
-              <tr>
-                <th className="px-3 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Device ID</th>
-                <th className="px-3 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider hidden md:table-cell">Device Name</th>
-                <th className="px-3 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider hidden lg:table-cell">Location</th>
-                <th className="px-3 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
-                <th className="px-3 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Battery</th>
-                <th className="px-3 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider hidden xl:table-cell">Display Status</th>
-                <th className="px-3 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider hidden lg:table-cell">Last Sync</th>
-                <th className="px-3 sm:px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
-              </tr>
-            </thead>
-            <tbody className="bg-white divide-y divide-gray-200">
-              {filteredDevices.length === 0 ? (
-                <tr>
-                  <td colSpan={8} className="px-3 sm:px-6 py-12 text-center text-gray-500 text-sm">
-                    {searchTerm || statusFilter || locationFilter
-                      ? 'No devices found matching your filters.'
-                      : 'No devices registered. Click "Register Device" to add one.'}
-                  </td>
-                </tr>
-              ) : (
-                filteredDevices.map((device) => (
-                  <tr key={device.id} className="hover:bg-gray-50">
-                    <td className="px-3 sm:px-6 py-4">
-                      <div className="text-xs sm:text-sm font-mono text-gray-900 break-all">{device.deviceId}</div>
-                      <div className="text-xs text-gray-500">{device.deviceType}</div>
-                      <div className="md:hidden text-xs text-gray-600 mt-1">{device.deviceName || '-'}</div>
-                    </td>
-                    <td className="px-3 sm:px-6 py-4 hidden md:table-cell">
-                      <div className="text-sm font-medium text-gray-900">
-                        {device.deviceName || '-'}
-                      </div>
-                    </td>
-                    <td className="px-3 sm:px-6 py-4 hidden lg:table-cell">
-                      <div className="text-sm text-gray-600">{device.location || '-'}</div>
-                    </td>
-                    <td className="px-3 sm:px-6 py-4 whitespace-nowrap">
-                      {device.isOnline === 1 ? (
-                        <span 
-                          onClick={() => handleToggleStatus(device)}
-                          className="px-2 sm:px-3 py-1 inline-flex text-xs leading-5 font-semibold rounded-full bg-green-100 text-green-800 cursor-pointer hover:bg-green-200 transition-colors"
-                          title="Click to toggle status (for testing)"
-                        >
-                          Online
-                        </span>
-                      ) : (
-                        <span 
-                          onClick={() => handleToggleStatus(device)}
-                          className="px-2 sm:px-3 py-1 inline-flex text-xs leading-5 font-semibold rounded-full bg-red-100 text-red-800 cursor-pointer hover:bg-red-200 transition-colors"
-                          title="Click to toggle status (for testing)"
-                        >
-                          Offline
-                        </span>
-                      )}
-                    </td>
-                    <td className="px-3 sm:px-6 py-4 whitespace-nowrap">
-                      <div className={`text-xs sm:text-sm font-medium ${getBatteryColor(device.batteryLevel)}`}>
-                        {device.batteryLevel !== null ? `${device.batteryLevel}%` : '-'}
-                      </div>
-                    </td>
-                    <td className="px-3 sm:px-6 py-4 hidden xl:table-cell">
-                      <div className="text-sm text-gray-600 max-w-xs truncate">
-                        {device.currentDisplay || '-'}
-                      </div>
-                    </td>
-                    <td className="px-3 sm:px-6 py-4 whitespace-nowrap hidden lg:table-cell">
-                      <div className="text-sm text-gray-600">{formatDate(device.lastSyncAt)}</div>
-                    </td>
-                    <td className="px-3 sm:px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                      <div className="flex flex-col sm:flex-row justify-end gap-1 sm:gap-2">
-                        <button
-                          onClick={() => openEditModal(device)}
-                          className="px-2 sm:px-3 py-1 bg-gray-100 text-gray-700 hover:bg-gray-200 border border-gray-300 rounded-lg text-xs font-medium transition-colors"
-                        >
-                          Edit
-                        </button>
-                        <button
-                          onClick={() => handleDelete(device)}
-                          className="px-2 sm:px-3 py-1 bg-red-100 text-red-700 hover:bg-red-200 border border-red-300 rounded-lg text-xs font-medium transition-colors"
-                        >
-                          Delete
-                        </button>
-                      </div>
-                    </td>
+      {/* Tab Content */}
+      {activeTab === 'store' && (
+        <>
+          {/* Store Table */}
+          <div className="bg-white rounded-lg shadow overflow-hidden">
+            <div className="overflow-x-auto">
+              <table className="w-full">
+                <thead className="bg-gray-100 border-b border-gray-200">
+                  <tr>
+                    <th className="px-4 py-3 text-left">
+                      <input type="checkbox" className="rounded border-gray-300" />
+                    </th>
+                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-600">No.</th>
+                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-600">id</th>
+                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-600">name</th>
+                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-600">coding</th>
+                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-600">PartNo</th>
+                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-600">specification</th>
+                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-600">Operate</th>
                   </tr>
-                ))
-              )}
-            </tbody>
-          </table>
-        </div>
-      </div>
+                </thead>
+                <tbody className="bg-white divide-y divide-gray-200">
+                  {storesLoading ? (
+                    <tr>
+                      <td colSpan={8} className="px-4 py-12 text-center text-gray-500 text-sm">
+                        Loading stores from Minew cloud...
+                      </td>
+                    </tr>
+                  ) : minewStores.length === 0 ? (
+                    <tr>
+                      <td colSpan={8} className="px-4 py-12 text-center text-gray-500 text-sm">
+                        No stores found.
+                      </td>
+                    </tr>
+                  ) : (
+                    minewStores.map((store, index) => (
+                      <tr key={store.storeId} className="hover:bg-gray-50">
+                        <td className="px-4 py-3">
+                          <input type="checkbox" className="rounded border-gray-300" />
+                        </td>
+                        <td className="px-4 py-3 text-sm text-gray-700">{index + 1}</td>
+                        <td className="px-4 py-3 text-sm text-gray-700">{store.storeId}</td>
+                        <td className="px-4 py-3 text-sm text-gray-700">{store.name || '-'}</td>
+                        <td className="px-4 py-3 text-sm text-gray-700">{store.number || '-'}</td>
+                        <td className="px-4 py-3 text-sm text-gray-700">-</td>
+                        <td className="px-4 py-3 text-sm text-gray-700">-</td>
+                        <td className="px-4 py-3">
+                          <div className="flex items-center gap-2">
+                            <button
+                              className="text-blue-600 hover:text-blue-800"
+                              title="Link"
+                            >
+                              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" />
+                              </svg>
+                            </button>
+                            <button
+                              className="text-red-600 hover:text-red-800"
+                              title="Delete"
+                            >
+                              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                              </svg>
+                            </button>
+                          </div>
+                        </td>
+                      </tr>
+                    ))
+                  )}
+                </tbody>
+              </table>
+            </div>
 
-      {/* Device Management Info */}
-      <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 sm:p-6">
-        <div className="flex flex-col sm:flex-row items-start gap-3">
-          <div className="text-blue-600 mt-1 flex-shrink-0">
-            <svg className="w-5 h-5 sm:w-6 sm:h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-            </svg>
-          </div>
-          <div className="flex-1">
-            <h3 className="text-sm font-medium text-blue-900">E-ink Device Integration</h3>
-            <p className="text-xs sm:text-sm text-blue-700 mt-1">
-              E-ink devices sync automatically with the MinewTag cloud platform. Register devices by their MAC address and assign them to products. Staff can press the button on the display to trigger replenishment requests.
-            </p>
-            <div className="mt-3 p-3 bg-white rounded border border-blue-200">
-              <p className="text-xs sm:text-sm font-medium text-blue-900 mb-2">Device Status Indicators:</p>
-              <ul className="text-xs sm:text-sm text-blue-700 space-y-2">
-                <li className="flex flex-col sm:flex-row sm:items-center gap-2">
-                  <span className="px-2 py-0.5 inline-flex text-xs font-semibold rounded-full bg-green-100 text-green-800 w-fit">Online</span>
-                  <span>Device is connected and communicating with the cloud platform</span>
-                </li>
-                <li className="flex flex-col sm:flex-row sm:items-center gap-2">
-                  <span className="px-2 py-0.5 inline-flex text-xs font-semibold rounded-full bg-red-100 text-red-800 w-fit">Offline</span>
-                  <span>Device is newly registered or hasn&apos;t synced yet. Click &quot;Sync Status&quot; to update.</span>
-                </li>
-              </ul>
-              <p className="text-xs text-blue-600 mt-2 italic">
-                💡 Tip: Devices show as &quot;Offline&quot; when first registered. They become &quot;Online&quot; after their first sync with the MinewTag platform. Use the &quot;Sync Status&quot; button to fetch the latest status from the cloud.
-              </p>
+            {/* Pagination */}
+            <div className="px-4 py-3 border-t border-gray-200 flex items-center justify-center gap-2">
+              <button className="px-3 py-1 bg-blue-500 text-white rounded text-sm font-medium">
+                1
+              </button>
+              <div className="flex items-center gap-2 text-sm text-gray-600">
+                <select className="border border-gray-300 rounded px-2 py-1 text-sm">
+                  <option>10/page</option>
+                  <option>20/page</option>
+                  <option>50/page</option>
+                  <option>100/page</option>
+                </select>
+                <span>1 pages in total</span>
+                <span>Go to</span>
+                <input
+                  type="number"
+                  defaultValue="1"
+                  className="w-16 px-2 py-1 border border-gray-300 rounded text-sm"
+                />
+                <span>page</span>
+                <button className="px-3 py-1 bg-white border border-gray-300 rounded text-sm hover:bg-gray-50">
+                  Confirm
+                </button>
+              </div>
             </div>
           </div>
-        </div>
-      </div>
+        </>
+      )}
+
+      {activeTab === 'template' && (
+        <>
+          {/* Store Selector for Templates */}
+          <div className="bg-white rounded-lg shadow p-4 mb-4">
+            <div className="flex items-center gap-4">
+              <label htmlFor="template-store-select" className="text-sm font-medium text-gray-700">
+                Select Store:
+              </label>
+              <select
+                id="template-store-select"
+                value={selectedStoreId}
+                onChange={(e) => {
+                  const newStoreId = e.target.value;
+                  setSelectedStoreId(newStoreId);
+                  if (newStoreId) {
+                    fetchTemplates(newStoreId);
+                  }
+                }}
+                className="flex-1 max-w-md px-4 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+              >
+                <option value="">-- Select a store --</option>
+                {minewStores.map((store) => (
+                  <option key={store.storeId} value={store.storeId}>
+                    {store.name} ({store.storeId})
+                  </option>
+                ))}
+              </select>
+              {selectedStoreId && (
+                <button
+                  onClick={() => fetchTemplates(selectedStoreId)}
+                  className="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors text-sm font-medium flex items-center gap-2"
+                >
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                  </svg>
+                  Refresh
+                </button>
+              )}
+            </div>
+          </div>
+
+          {/* Template Table */}
+          <div className="bg-white rounded-lg shadow overflow-hidden">
+            <div className="overflow-x-auto">
+              <table className="w-full">
+                <thead className="bg-gray-100 border-b border-gray-200">
+                  <tr>
+                    <th className="px-4 py-3 text-left">
+                      <input type="checkbox" className="rounded border-gray-300" />
+                    </th>
+                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-600">No.</th>
+                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-600">template id</th>
+                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-600">name</th>
+                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-600">display size</th>
+                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-600">color</th>
+                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-600">Operate</th>
+                  </tr>
+                </thead>
+                <tbody className="bg-white divide-y divide-gray-200">
+                  {templatesLoading ? (
+                    <tr>
+                      <td colSpan={7} className="px-4 py-12 text-center text-gray-500 text-sm">
+                        Loading templates from Minew cloud...
+                      </td>
+                    </tr>
+                  ) : templatesError ? (
+                    <tr>
+                      <td colSpan={7} className="px-4 py-12 text-center">
+                        <div className="text-red-600 text-sm">
+                          <p className="font-medium">Error loading templates</p>
+                          <p className="mt-1 text-xs">{templatesError}</p>
+                          {!selectedStoreId && (
+                            <p className="mt-2 text-gray-600">Please select a store from the Store tab first.</p>
+                          )}
+                        </div>
+                      </td>
+                    </tr>
+                  ) : !selectedStoreId ? (
+                    <tr>
+                      <td colSpan={7} className="px-4 py-12 text-center text-gray-500 text-sm">
+                        <p>Please select a store to view templates.</p>
+                        <p className="mt-2 text-xs">Go to the Store tab and select a store first.</p>
+                      </td>
+                    </tr>
+                  ) : templates.length === 0 ? (
+                    <tr>
+                      <td colSpan={7} className="px-4 py-12 text-center text-gray-500 text-sm">
+                        No templates found for this store.
+                      </td>
+                    </tr>
+                  ) : (
+                    templates.map((template, index) => (
+                      <tr key={template.id} className="hover:bg-gray-50">
+                        <td className="px-4 py-3">
+                          <input type="checkbox" className="rounded border-gray-300" />
+                        </td>
+                        <td className="px-4 py-3 text-sm text-gray-700">{index + 1}</td>
+                        <td className="px-4 py-3 text-sm text-gray-700">{template.id}</td>
+                        <td className="px-4 py-3 text-sm text-gray-700">{template.name}</td>
+                        <td className="px-4 py-3 text-sm text-gray-700">{template.screenSize}</td>
+                        <td className="px-4 py-3">
+                          <span className={`px-3 py-1 inline-flex text-xs leading-5 font-semibold rounded-full ${
+                            template.color === 'black' ? 'bg-gray-100 text-gray-800' :
+                            template.color === 'red' ? 'bg-red-100 text-red-800' :
+                            template.color === 'yellow' ? 'bg-yellow-100 text-yellow-800' :
+                            template.color === 'bwry' ? 'bg-blue-100 text-blue-800' :
+                            'bg-blue-100 text-blue-800'
+                          }`}>
+                            {template.color}
+                          </span>
+                        </td>
+                        <td className="px-4 py-3">
+                          <div className="flex items-center gap-2">
+                            <button
+                              className="text-blue-600 hover:text-blue-800"
+                              title="Link"
+                            >
+                              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" />
+                              </svg>
+                            </button>
+                            <button
+                              className="text-red-600 hover:text-red-800"
+                              title="Delete"
+                            >
+                              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                              </svg>
+                            </button>
+                          </div>
+                        </td>
+                      </tr>
+                    ))
+                  )}
+                </tbody>
+              </table>
+            </div>
+
+            {/* Pagination */}
+            <div className="px-4 py-3 border-t border-gray-200 flex items-center justify-center gap-2">
+              <button className="px-3 py-1 bg-blue-500 text-white rounded text-sm font-medium">
+                1
+              </button>
+              <div className="flex items-center gap-2 text-sm text-gray-600">
+                <select className="border border-gray-300 rounded px-2 py-1 text-sm">
+                  <option>10/page</option>
+                  <option>20/page</option>
+                  <option>50/page</option>
+                  <option>100/page</option>
+                </select>
+                <span>1 pages in total</span>
+                <span>Go to</span>
+                <input
+                  type="number"
+                  defaultValue="1"
+                  className="w-16 px-2 py-1 border border-gray-300 rounded text-sm"
+                />
+                <span>page</span>
+                <button className="px-3 py-1 bg-white border border-gray-300 rounded text-sm hover:bg-gray-50">
+                  Confirm
+                </button>
+              </div>
+            </div>
+          </div>
+        </>
+      )}
+
+      {activeTab === 'gateway' && (
+        <>
+          {/* Store Selector for Gateways */}
+          <div className="bg-white rounded-lg shadow p-4 mb-4">
+            <div className="flex items-center gap-4">
+              <label htmlFor="gateway-store-select" className="text-sm font-medium text-gray-700">
+                Select Store:
+              </label>
+              <select
+                id="gateway-store-select"
+                value={selectedStoreId}
+                onChange={(e) => {
+                  const newStoreId = e.target.value;
+                  setSelectedStoreId(newStoreId);
+                  if (newStoreId) {
+                    fetchMinewGateways(newStoreId);
+                  }
+                }}
+                className="flex-1 max-w-md px-4 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+              >
+                <option value="">-- Select a store --</option>
+                {minewStores.map((store) => (
+                  <option key={store.storeId} value={store.storeId}>
+                    {store.name} ({store.storeId})
+                  </option>
+                ))}
+              </select>
+              {selectedStoreId && (
+                <button
+                  onClick={() => {
+                    fetchMinewGateways(selectedStoreId);
+                    fetchGateways();
+                  }}
+                  className="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors text-sm font-medium flex items-center gap-2"
+                >
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                  </svg>
+                  Refresh
+                </button>
+              )}
+            </div>
+          </div>
+
+          {/* Gateway Action Bar */}
+          <div className="flex flex-wrap items-center justify-between gap-3 bg-white p-4 rounded-lg shadow">
+            <div className="flex flex-wrap gap-2">
+              <div className="relative">
+                <input
+                  type="text"
+                  placeholder="Search"
+                  className="pl-4 pr-10 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                />
+                <svg className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                </svg>
+              </div>
+              <select className="px-4 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+                <option>Select</option>
+              </select>
+            </div>
+            <div className="flex flex-wrap gap-2">
+              <button 
+                onClick={openGatewayModal}
+                className="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors text-sm font-medium flex items-center gap-2"
+              >
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+                </svg>
+                Add
+              </button>
+              
+            </div>
+          </div>
+
+          {/* Gateway Table */}
+          <div className="bg-white rounded-lg shadow overflow-hidden">
+            <div className="overflow-x-auto">
+              <table className="w-full">
+                <thead className="bg-gray-100 border-b border-gray-200">
+                  <tr>
+                    <th className="px-4 py-3 text-left">
+                      <input type="checkbox" className="rounded border-gray-300" />
+                    </th>
+                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-600">No.</th>
+                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-600">Gateway name</th>
+                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-600">Mac address</th>
+                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-600">Status</th>
+                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-600">Updating time</th>
+                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-600">Model No.</th>
+                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-600">WiFi firmware version</th>
+                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-600">Bluetooth firmware version</th>
+                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-600">IP address</th>
+                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-600">Operate</th>
+                  </tr>
+                </thead>
+                <tbody className="bg-white divide-y divide-gray-200">
+                  {minewGatewaysLoading ? (
+                    <tr>
+                      <td colSpan={11} className="px-4 py-12 text-center text-gray-500 text-sm">
+                        Loading gateways from Minew cloud...
+                      </td>
+                    </tr>
+                  ) : !selectedStoreId ? (
+                    <tr>
+                      <td colSpan={11} className="px-4 py-12 text-center text-gray-500 text-sm">
+                        Please select a store to view gateways.
+                      </td>
+                    </tr>
+                  ) : minewGateways.length === 0 ? (
+                    <tr>
+                      <td colSpan={11} className="px-4 py-12 text-center text-gray-500 text-sm">
+                        No gateways found in Minew cloud.
+                      </td>
+                    </tr>
+                  ) : (
+                    minewGateways.map((gateway, index) => (
+                      <tr key={gateway.id} className="hover:bg-gray-50">
+                        <td className="px-4 py-3">
+                          <input type="checkbox" className="rounded border-gray-300" />
+                        </td>
+                        <td className="px-4 py-3 text-sm text-gray-700">{index + 1}</td>
+                        <td className="px-4 py-3 text-sm text-gray-700">{gateway.name}</td>
+                        <td className="px-4 py-3 text-sm text-gray-700 font-mono">{gateway.mac}</td>
+                        <td className="px-4 py-3 text-sm">
+                          <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${
+                            gateway.mode === 1 ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800'
+                          }`}>
+                            {gateway.mode === 1 ? 'Online' : 'Offline'}
+                          </span>
+                        </td>
+                        <td className="px-4 py-3 text-sm text-gray-700">
+                          {gateway.updateTime ? new Date(gateway.updateTime).toLocaleString() : '-'}
+                        </td>
+                        <td className="px-4 py-3 text-sm text-gray-700">-</td>
+                        <td className="px-4 py-3 text-sm text-gray-700">-</td>
+                        <td className="px-4 py-3 text-sm text-gray-700">-</td>
+                        <td className="px-4 py-3 text-sm text-gray-700">-</td>
+                        <td className="px-4 py-3">
+                          <button
+                            onClick={() => {
+                              // Find matching local gateway by MAC address
+                              const localGateway = gateways.find(g => 
+                                g.mac_address.replace(/[:-]/g, '').toUpperCase() === 
+                                gateway.mac.replace(/[:-]/g, '').toUpperCase()
+                              );
+                              if (localGateway) {
+                                handleDeleteGateway(localGateway.id);
+                              } else {
+                                notification.error('Error', 'Gateway not found in local database');
+                              }
+                            }}
+                            className="text-red-600 hover:text-red-800"
+                            title="Delete"
+                          >
+                            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                            </svg>
+                          </button>
+                        </td>
+                      </tr>
+                    ))
+                  )}
+                </tbody>
+              </table>
+            </div>
+
+            {/* Pagination */}
+            <div className="px-4 py-3 border-t border-gray-200 flex items-center justify-center gap-2">
+              <button className="px-3 py-1 bg-blue-500 text-white rounded text-sm font-medium">
+                1
+              </button>
+              <div className="flex items-center gap-2 text-sm text-gray-600">
+                <select className="border border-gray-300 rounded px-2 py-1 text-sm">
+                  <option>10/page</option>
+                  <option>20/page</option>
+                  <option>50/page</option>
+                  <option>100/page</option>
+                </select>
+                <span>1 pages in total</span>
+                <span>Go to</span>
+                <input
+                  type="number"
+                  defaultValue="1"
+                  className="w-16 px-2 py-1 border border-gray-300 rounded text-sm"
+                />
+                <span>page</span>
+                <button className="px-3 py-1 bg-white border border-gray-300 rounded text-sm hover:bg-gray-50">
+                  Confirm
+                </button>
+              </div>
+            </div>
+          </div>
+        </>
+      )}
+
+      {activeTab === 'esl' && (
+        <>
+          {/* Store Selector for ESL Tags */}
+          <div className="bg-white rounded-lg shadow p-4 mb-4">
+            <div className="flex items-center gap-4">
+              <label htmlFor="esl-store-select" className="text-sm font-medium text-gray-700">
+                Select Store:
+              </label>
+              <select
+                id="esl-store-select"
+                value={selectedStoreId}
+                onChange={(e) => {
+                  const newStoreId = e.target.value;
+                  setSelectedStoreId(newStoreId);
+                  if (newStoreId) {
+                    fetchESLTags(newStoreId);
+                  }
+                }}
+                className="flex-1 max-w-md px-4 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+              >
+                <option value="">-- Select a store --</option>
+                {minewStores.map((store) => (
+                  <option key={store.storeId} value={store.storeId}>
+                    {store.name} ({store.storeId})
+                  </option>
+                ))}
+              </select>
+              {selectedStoreId && (
+                <button
+                  onClick={() => fetchESLTags(selectedStoreId)}
+                  className="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors text-sm font-medium flex items-center gap-2"
+                >
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                  </svg>
+                  Refresh
+                </button>
+              )}
+            </div>
+          </div>
+
+          {/* Action Buttons Bar */}
+          <div className="flex flex-wrap items-center justify-between gap-3 bg-white p-4 rounded-lg shadow">
+            <div className="flex flex-wrap gap-2">
+              <select
+                className="px-4 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+              >
+                <option>ESL</option>
+              </select>
+              <select
+                className="px-4 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+              >
+                <option>all devices</option>
+              </select>
+              <div className="relative">
+                <input
+                  type="text"
+                  placeholder="Search"
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  className="pl-4 pr-10 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                />
+                <svg className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                </svg>
+              </div>
+            </div>
+            <div className="flex flex-wrap gap-2">
+              <button className="px-4 py-2 bg-cyan-500 text-white rounded-lg hover:bg-cyan-600 transition-colors text-sm font-medium flex items-center gap-2">
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+                </svg>
+                Export
+              </button>
+              <button className="px-4 py-2 bg-orange-500 text-white rounded-lg hover:bg-orange-600 transition-colors text-sm font-medium flex items-center gap-2">
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" />
+                </svg>
+                Batch Import
+              </button>
+              <button
+                onClick={handleSyncDevices}
+                disabled={syncing}
+                className="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 disabled:bg-gray-400 transition-colors text-sm font-medium flex items-center gap-2"
+              >
+                <svg className={`w-4 h-4 ${syncing ? 'animate-spin' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                </svg>
+                Refresh
+              </button>
+              <button className="px-4 py-2 bg-purple-500 text-white rounded-lg hover:bg-purple-600 transition-colors text-sm font-medium flex items-center gap-2">
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 10h16M4 14h16M4 18h16" />
+                </svg>
+                Column management
+              </button>
+              <button className="px-4 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600 transition-colors text-sm font-medium flex items-center gap-2">
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+                </svg>
+                More
+              </button>
+            </div>
+          </div>
+
+          {/* Devices Table */}
+          <div className="bg-white rounded-lg shadow overflow-hidden">
+            <div className="overflow-x-auto">
+              <table className="w-full">
+                <thead className="bg-gray-50 border-b border-gray-200">
+                  <tr>
+                    <th className="px-4 py-3 text-left">
+                      <input type="checkbox" className="rounded border-gray-300" />
+                    </th>
+                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-600">No.</th>
+                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-600">MAC address</th>
+                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-600">Size(")</th>
+                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-600">RSSI</th>
+                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-600">
+                      <div className="flex items-center gap-1">
+                        Battery level(%)
+                        <svg className="w-3 h-3 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                        </svg>
+                      </div>
+                    </th>
+                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-600">Online status</th>
+                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-600">Data ID</th>
+                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-600">Last broadcast time</th>
+                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-600">Number</th>
+                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-600">Remark</th>
+                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-600">Operate</th>
+                  </tr>
+                </thead>
+                <tbody className="bg-white divide-y divide-gray-200">
+                  {eslTagsLoading ? (
+                    <tr>
+                      <td colSpan={12} className="px-4 py-12 text-center text-gray-500 text-sm">
+                        Loading ESL tags from Minew cloud...
+                      </td>
+                    </tr>
+                  ) : !selectedStoreId ? (
+                    <tr>
+                      <td colSpan={12} className="px-4 py-12 text-center text-gray-500 text-sm">
+                        Please select a store to view ESL tags.
+                      </td>
+                    </tr>
+                  ) : eslTags.length === 0 ? (
+                    <tr>
+                      <td colSpan={12} className="px-4 py-12 text-center text-gray-500 text-sm">
+                        No ESL tags found in Minew cloud.
+                      </td>
+                    </tr>
+                  ) : (
+                    eslTags.map((tag, index) => (
+                      <tr key={tag.id} className="hover:bg-gray-50">
+                        <td className="px-4 py-3">
+                          <input type="checkbox" className="rounded border-gray-300" />
+                        </td>
+                        <td className="px-4 py-3 text-sm text-gray-700">{index + 1}</td>
+                        <td className="px-4 py-3">
+                          <div className="text-sm font-mono text-blue-600">{tag.mac}</div>
+                        </td>
+                        <td className="px-4 py-3 text-sm text-gray-700">
+                          {tag.screenInfo ? `${tag.screenInfo.inch}"` : tag.screenSize}
+                        </td>
+                        <td className="px-4 py-3">
+                          <div className="flex items-center gap-1">
+                            <div className="flex">
+                              {[1, 2, 3, 4].map((bar) => (
+                                <div
+                                  key={bar}
+                                  className={`w-1 h-3 mx-0.5 ${
+                                    tag.isOnline === '2' ? 'bg-green-500' : 'bg-gray-300'
+                                  }`}
+                                  style={{ height: `${bar * 3 + 3}px` }}
+                                />
+                              ))}
+                            </div>
+                          </div>
+                        </td>
+                        <td className="px-4 py-3">
+                          {tag.battery !== undefined ? (
+                            <div className="flex items-center gap-2">
+                              <div className={`px-2 py-0.5 rounded text-xs font-medium ${
+                                tag.battery >= 80 ? 'bg-green-100 text-green-700 border border-green-300' :
+                                tag.battery >= 50 ? 'bg-yellow-100 text-yellow-700 border border-yellow-300' :
+                                'bg-red-100 text-red-700 border border-red-300'
+                              }`}>
+                                {tag.battery}%
+                              </div>
+                            </div>
+                          ) : (
+                            <span className="text-gray-400">-</span>
+                          )}
+                        </td>
+                        <td className="px-4 py-3">
+                          {tag.isOnline === '2' ? (
+                            <span className="px-2 py-1 text-xs rounded bg-gray-100 text-gray-600">Online</span>
+                          ) : (
+                            <span className="px-2 py-1 text-xs rounded bg-red-100 text-red-600">Offline</span>
+                          )}
+                        </td>
+                        <td className="px-4 py-3 text-sm text-gray-700">
+                          {tag.bind === '1' ? 'Bound' : 'Unbound'}
+                        </td>
+                        <td className="px-4 py-3 text-sm text-gray-600">
+                          {tag.updateTime ? new Date(tag.updateTime).toLocaleString() : '-'}
+                        </td>
+                        <td className="px-4 py-3 text-sm text-gray-700">{tag.mac}</td>
+                        <td className="px-4 py-3 text-sm text-gray-700">-</td>
+                        <td className="px-4 py-3">
+                          <div className="flex items-center gap-2">
+                            <button
+                              className="text-blue-600 hover:text-blue-800"
+                              title="Link"
+                            >
+                              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" />
+                              </svg>
+                            </button>
+                            <button
+                              className="text-gray-600 hover:text-gray-800"
+                              title="Edit"
+                            >
+                              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                              </svg>
+                            </button>
+                            <button
+                              className="text-red-600 hover:text-red-800"
+                              title="Delete"
+                            >
+                              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                              </svg>
+                            </button>
+                          </div>
+                        </td>
+                      </tr>
+                    ))
+                  )}
+                </tbody>
+              </table>
+            </div>
+
+            {/* Pagination */}
+            <div className="px-4 py-3 border-t border-gray-200 flex items-center justify-center gap-2">
+              <button className="px-3 py-1 bg-blue-500 text-white rounded text-sm font-medium">
+                1
+              </button>
+              <div className="flex items-center gap-2 text-sm text-gray-600">
+                <select className="border border-gray-300 rounded px-2 py-1 text-sm">
+                  <option>10/page</option>
+                  <option>20/page</option>
+                  <option>50/page</option>
+                  <option>100/page</option>
+                </select>
+                <span>1 pages in total</span>
+                <span>Go to</span>
+                <input
+                  type="number"
+                  defaultValue="1"
+                  className="w-16 px-2 py-1 border border-gray-300 rounded text-sm"
+                />
+                <span>page</span>
+                <button className="px-3 py-1 bg-white border border-gray-300 rounded text-sm hover:bg-gray-50">
+                  Confirm
+                </button>
+              </div>
+            </div>
+          </div>
+
+        </>
+      )}
 
       {/* Modal */}
       {isModalOpen && (
@@ -673,6 +1686,128 @@ export default function DevicesPage() {
                   </button>
                 </div>
               </form>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Gateway Modal */}
+      {isGatewayModalOpen && (
+        <div className="fixed inset-0 z-50 overflow-y-auto">
+          <div className="flex min-h-full  items-center justify-center p-4">
+            <div className="fixed inset-0 bg-black/50" onClick={closeGatewayModal} />
+            <div className="relative transform overflow-hidden rounded-lg bg-white shadow-xl transition-all w-full max-w-md">
+              <form onSubmit={handleGatewaySubmit}>
+                <div className="bg-white px-6 pt-5 pb-4">
+                  <div className="flex items-center justify-between mb-4">
+                    <h3 className="text-lg font-medium text-gray-900">Add</h3>
+                    <button
+                      type="button"
+                      onClick={closeGatewayModal}
+                      className="text-gray-400 hover:text-gray-500"
+                    >
+                      <svg className="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                      </svg>
+                    </button>
+                  </div>
+                  
+                  {gatewayFormError && (
+                    <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded text-sm text-red-700">
+                      {gatewayFormError}
+                    </div>
+                  )}
+
+                  <div className="space-y-4">
+                    <div>
+                      <label htmlFor="gatewayName" className="block text-sm font-medium text-gray-700 mb-1">
+                        <span className="text-red-500">*</span> Name
+                      </label>
+                      <input
+                        type="text"
+                        id="gatewayName"
+                        value={gatewayFormData.name}
+                        onChange={(e) => setGatewayFormData({ ...gatewayFormData, name: e.target.value })}
+                        className="block w-full rounded border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                        required
+                      />
+                    </div>
+                    <div>
+                      <label htmlFor="macAddress" className="block text-sm font-medium text-gray-700 mb-1">
+                        <span className="text-red-500">*</span> Mac address
+                      </label>
+                      <input
+                        type="text"
+                        id="macAddress"
+                        value={gatewayFormData.macAddress}
+                        onChange={(e) => setGatewayFormData({ ...gatewayFormData, macAddress: e.target.value })}
+                        className="block w-full rounded border border-gray-300 px-3 py-2 text-sm font-mono focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                        required
+                      />
+                    </div>
+                  </div>
+                </div>
+                
+                <div className="bg-gray-50 px-6 py-3 flex justify-end gap-3">
+                  <button
+                    type="button"
+                    onClick={closeGatewayModal}
+                    disabled={gatewaySubmitting}
+                    className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded hover:bg-gray-50 disabled:opacity-50"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="submit"
+                    disabled={gatewaySubmitting}
+                    className="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded hover:bg-blue-700 disabled:opacity-50"
+                  >
+                    {gatewaySubmitting ? 'Confirming...' : 'Confirm'}
+                  </button>
+                </div>
+              </form>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Confirmation Modal */}
+      {confirmModal.isOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center">
+          {/* Backdrop */}
+          <div 
+            className="fixed inset-0 bg-black/50 transition-opacity" 
+            onClick={() => setConfirmModal(prev => ({ ...prev, isOpen: false }))}
+          />
+          
+          {/* Modal Content */}
+          <div className="relative bg-white rounded-lg shadow-xl max-w-md w-full mx-4 transform transition-all">
+            <div className="p-6">
+              <h3 className="text-lg font-semibold text-gray-900 mb-2">
+                {confirmModal.title}
+              </h3>
+              <p className="text-sm text-gray-600 mb-6">
+                {confirmModal.message}
+              </p>
+              
+              <div className="flex justify-end gap-3">
+                <button
+                  onClick={() => setConfirmModal(prev => ({ ...prev, isOpen: false }))}
+                  className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500 transition-colors"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={() => confirmModal.onConfirm()}
+                  className={`px-4 py-2 text-sm font-medium text-white rounded-md focus:outline-none focus:ring-2 focus:ring-offset-2 transition-colors ${
+                    confirmModal.confirmColor === 'red'
+                      ? 'bg-red-600 hover:bg-red-700 focus:ring-red-500'
+                      : 'bg-blue-600 hover:bg-blue-700 focus:ring-blue-500'
+                  }`}
+                >
+                  {confirmModal.confirmText || 'Confirm'}
+                </button>
+              </div>
             </div>
           </div>
         </div>

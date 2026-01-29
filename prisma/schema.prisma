@@ -39,12 +39,25 @@ model DeviceStatus {
   installationDate DateTime?
   createdAt        DateTime  @default(now())
   updatedAt        DateTime
+  
+  // Minew ESL Integration Fields
+  minewStoreId     String?   @db.VarChar(50)
+  minewSynced      Int       @default(0) @db.TinyInt
+  minewBound       Int       @default(0) @db.TinyInt
+  minewGoodsId     String?   @db.VarChar(100)
+  minewTemplateId  String?   @db.VarChar(50)
+  screenSize       String?   @db.VarChar(20)
+  screenColor      String?   @db.VarChar(10)
 
   @@unique([manager_id, deviceId], map: "unique_manager_device")
   @@index([manager_id])
   @@index([manager_id, isOnline])
+  @@index([manager_id, minewStoreId])
   @@map("device_status")
 }
+
+// Minew Store Configuration
+
 
 model OrderItem {
   id                     Int                   @id @default(autoincrement())
@@ -221,6 +234,18 @@ model ApiKey {
   created_at  String @db.VarChar(255)
 
   @@map("apikey")
+}
+
+model Gateway {
+  id          Int      @id @default(autoincrement())
+  name        String   @db.VarChar(255)
+  mac_address String   @db.VarChar(20)
+  manager_id  Int
+  created_at  DateTime @default(now())
+
+  @@unique([manager_id, mac_address], map: "unique_manager_mac")
+  @@index([manager_id])
+  @@map("gateway")
 }
 
 model User {

@@ -94,6 +94,26 @@ interface DashboardData {
   };
 }
 
+interface MinewStatus {
+  connected: boolean;
+  message: string;
+  details?: {
+    apiBase: string;
+    username: string;
+    tokenValid: boolean;
+  };
+  stores?: Array<{
+    storeId: string;
+    name: string;
+    number: string;
+  }>;
+  totals?: {
+    gateways: { total: number; online: number; offline: number };
+    eslTags: { total: number; online: number; offline: number; lowBattery: number; bound: number; unbound: number };
+    warnings: number;
+  };
+}
+
 export default function AdminPage() {
   const router = useRouter();
   const [user, setUser] = useState<{ username?: string } | null>(null);
@@ -101,6 +121,8 @@ export default function AdminPage() {
   const [data, setData] = useState<DashboardData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [minewStatus, setMinewStatus] = useState<MinewStatus | null>(null);
+  const [minewLoading, setMinewLoading] = useState(true);
 
   useEffect(() => {
     const token = localStorage.getItem('token');
@@ -121,6 +143,38 @@ export default function AdminPage() {
       fetchDashboardData();
     }
   }, [managerId]);
+
+  // Check Minew ESL Cloud connection on mount
+  useEffect(() => {
+    checkMinewConnection();
+  }, []);
+
+  const checkMinewConnection = async () => {
+    setMinewLoading(true);
+    try {
+      const response = await fetch('/api/minew/dashboard');
+      const result = await response.json();
+      
+      setMinewStatus({
+        connected: result.connected || false,
+        message: result.message || 'Unknown status',
+        details: {
+          apiBase: result.connected ? 'cloud.minewesl.com' : '',
+          username: process.env.NEXT_PUBLIC_MINEW_USERNAME || '',
+          tokenValid: result.connected,
+        },
+        stores: result.stores,
+        totals: result.totals,
+      });
+    } catch (err) {
+      setMinewStatus({
+        connected: false,
+        message: err instanceof Error ? err.message : 'Failed to check connection',
+      });
+    } finally {
+      setMinewLoading(false);
+    }
+  };
 
   const fetchDashboardData = async () => {
     try {
@@ -237,6 +291,135 @@ export default function AdminPage() {
         <p className="text-sm text-gray-600 mt-1">
           Welcome back{user?.username ? `, ${user.username}` : ''}! Here&apos;s your inventory overview.
         </p>
+      </div>
+
+      {/* Minew ESL Cloud Connection Status */}
+      <div className="bg-white rounded-lg shadow p-4">
+        <div className="flex items-center justify-between mb-3">
+          <div className="flex items-center gap-2">
+            <svg className="w-5 h-5 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+            </svg>
+            <h3 className="text-sm font-semibold text-gray-700">Minew ESL Cloud</h3>
+          </div>
+          <button
+            onClick={checkMinewConnection}
+            disabled={minewLoading}
+            className="text-xs px-3 py-1.5 bg-blue-500 text-white rounded-md hover:bg-blue-600 disabled:opacity-50 transition-colors"
+          >
+            {minewLoading ? 'Checking...' : 'Refresh'}
+          </button>
+        </div>
+
+        {minewLoading && !minewStatus ? (
+          <div className="flex items-center gap-2 text-gray-500 text-sm">
+            <div className="w-4 h-4 border-2 border-gray-300 border-t-blue-500 rounded-full animate-spin"></div>
+            <span>Checking connection...</span>
+          </div>
+        ) : minewStatus ? (
+          <div className="space-y-3">
+            {/* Connection Status */}
+            <div className={`p-3 rounded-lg ${
+              minewStatus.connected 
+                ? 'bg-green-50 border border-green-200' 
+                : 'bg-red-50 border border-red-200'
+            }`}>
+              <div className="flex items-center gap-2">
+                <span className={`text-lg ${minewStatus.connected ? 'text-green-500' : 'text-red-500'}`}>
+                  {minewStatus.connected ? '✓' : '✕'}
+                </span>
+                <span className={`text-sm font-medium ${minewStatus.connected ? 'text-green-700' : 'text-red-700'}`}>
+                  {minewStatus.connected ? 'Connected' : 'Not Connected'}
+                </span>
+              </div>
+              <p className={`text-xs mt-1 ${minewStatus.connected ? 'text-green-600' : 'text-red-600'}`}>
+                {minewStatus.message}
+              </p>
+            </div>
+
+            {/* ESL Stats when connected */}
+            {minewStatus.connected && minewStatus.totals && (
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                {/* Gateways */}
+                <div className="bg-gray-50 rounded-lg p-3 border border-gray-200">
+                  <div className="text-xs text-gray-500 uppercase tracking-wide">Gateways</div>
+                  <div className="text-xl font-bold text-gray-900 mt-1">{minewStatus.totals.gateways.total}</div>
+                  <div className="flex items-center gap-2 mt-1 text-xs">
+                    <span className="text-green-600">{minewStatus.totals.gateways.online} online</span>
+                    {minewStatus.totals.gateways.offline > 0 && (
+                      <span className="text-red-600">{minewStatus.totals.gateways.offline} offline</span>
+                    )}
+                  </div>
+                </div>
+
+                {/* ESL Tags */}
+                <div className="bg-gray-50 rounded-lg p-3 border border-gray-200">
+                  <div className="text-xs text-gray-500 uppercase tracking-wide">ESL Tags</div>
+                  <div className="text-xl font-bold text-gray-900 mt-1">{minewStatus.totals.eslTags.total}</div>
+                  <div className="flex items-center gap-2 mt-1 text-xs">
+                    <span className="text-green-600">{minewStatus.totals.eslTags.online} online</span>
+                    {minewStatus.totals.eslTags.offline > 0 && (
+                      <span className="text-red-600">{minewStatus.totals.eslTags.offline} offline</span>
+                    )}
+                  </div>
+                </div>
+
+                {/* Bound/Unbound */}
+                <div className="bg-gray-50 rounded-lg p-3 border border-gray-200">
+                  <div className="text-xs text-gray-500 uppercase tracking-wide">Bindings</div>
+                  <div className="text-xl font-bold text-gray-900 mt-1">{minewStatus.totals.eslTags.bound}</div>
+                  <div className="flex items-center gap-2 mt-1 text-xs">
+                    <span className="text-green-600">bound</span>
+                    {minewStatus.totals.eslTags.unbound > 0 && (
+                      <span className="text-yellow-600">{minewStatus.totals.eslTags.unbound} unbound</span>
+                    )}
+                  </div>
+                </div>
+
+                {/* Alerts */}
+                <div className="bg-gray-50 rounded-lg p-3 border border-gray-200">
+                  <div className="text-xs text-gray-500 uppercase tracking-wide">Alerts</div>
+                  <div className="text-xl font-bold text-gray-900 mt-1">
+                    {minewStatus.totals.eslTags.lowBattery + minewStatus.totals.warnings}
+                  </div>
+                  <div className="flex items-center gap-2 mt-1 text-xs">
+                    {minewStatus.totals.eslTags.lowBattery > 0 && (
+                      <span className="text-orange-600">{minewStatus.totals.eslTags.lowBattery} low battery</span>
+                    )}
+                    {minewStatus.totals.warnings > 0 && (
+                      <span className="text-red-600">{minewStatus.totals.warnings} warnings</span>
+                    )}
+                    {minewStatus.totals.eslTags.lowBattery === 0 && minewStatus.totals.warnings === 0 && (
+                      <span className="text-green-600">All clear</span>
+                    )}
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* Stores list when connected */}
+            {minewStatus.connected && minewStatus.stores && minewStatus.stores.length > 0 && (
+              <div className="mt-2 pt-2 border-t border-gray-200">
+                <div className="text-xs text-gray-500 uppercase tracking-wide mb-2">Stores ({minewStatus.stores.length})</div>
+                <div className="flex flex-wrap gap-2">
+                  {minewStatus.stores.slice(0, 5).map((store) => (
+                    <span
+                      key={store.storeId}
+                      className="inline-flex items-center px-2 py-1 bg-blue-50 text-blue-700 text-xs rounded-md border border-blue-200"
+                    >
+                      {store.name || store.number}
+                    </span>
+                  ))}
+                  {minewStatus.stores.length > 5 && (
+                    <span className="inline-flex items-center px-2 py-1 bg-gray-50 text-gray-600 text-xs rounded-md border border-gray-200">
+                      +{minewStatus.stores.length - 5} more
+                    </span>
+                  )}
+                </div>
+              </div>
+            )}
+          </div>
+        ) : null}
       </div>
 
       {/* Alerts Section */}

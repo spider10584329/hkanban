@@ -8,6 +8,6 @@ JWT_SECRET="your-super-secret-jwt-key-change-this-in-production"
 # Next.js
 NEXT_PUBLIC_APP_URL="http://localhost:3000"
 PULSEPOINT_PROJECT_ID=22
-MINEW_API_BASE=https://api.minew.com
-MINEW_API_KEY=your_minew_api_key
-MINEW_API_SECRET=your_minew_api_secret
+MINEW_API_BASE=https://cloud.minewesl.com
+MINEW_USERNAME=SQUARE
+MINEW_PASSWORD=Minew123456
