@@ -5,9 +5,9 @@ DATABASE_URL="mysql://node_svc:Defender-payment-separate@localhost:3306/hkanban?
 # JWT Secret (change this to a secure random string in production)
 JWT_SECRET="your-super-secret-jwt-key-change-this-in-production"
 
-# Next.js
 NEXT_PUBLIC_APP_URL="http://localhost:3000"
 PULSEPOINT_PROJECT_ID=22
 MINEW_API_BASE=https://cloud.minewesl.com
 MINEW_USERNAME=SQUARE
 MINEW_PASSWORD=Minew123456
+MINEW_ESL_BUTTON_EVENT_URL=https://yourdomain.com/api/esl/button-event

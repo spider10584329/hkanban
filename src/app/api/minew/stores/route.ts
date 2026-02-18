@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { listStores, getStore, createStore, toggleStore } from '@/lib/minew';
+import { listStores, getStore, createStore, toggleStore, testMinewConnection } from '@/lib/minew';
 
 /**
  * GET - List all Minew stores or get a specific store
@@ -9,8 +9,35 @@ export async function GET(request: NextRequest) {
     const searchParams = request.nextUrl.searchParams;
     const storeId = searchParams.get('storeId');
 
+    console.log('[Stores API] Starting request...');
+    console.log('[Stores API] Environment check:', {
+      hasUsername: !!process.env.MINEW_USERNAME,
+      hasPassword: !!process.env.MINEW_PASSWORD,
+      hasApiBase: !!process.env.MINEW_API_BASE,
+      username: process.env.MINEW_USERNAME,
+      apiBase: process.env.MINEW_API_BASE,
+    });
+
+    // Test connection first to ensure we have a valid token
+    console.log('[Stores API] Testing Minew connection...');
+    const connectionStatus = await testMinewConnection();
+    console.log('[Stores API] Connection status:', connectionStatus);
+    
+    if (!connectionStatus.connected) {
+      console.error('[Stores API] Minew connection failed:', connectionStatus.message);
+      return NextResponse.json(
+        { 
+          error: 'Failed to connect to Minew cloud',
+          details: connectionStatus.message,
+          stores: [] // Return empty array to prevent frontend errors
+        },
+        { status: 503 }
+      );
+    }
+
     if (storeId) {
       // Get specific store
+      console.log('[Stores API] Fetching specific store:', storeId);
       const store = await getStore(storeId);
       if (!store) {
         return NextResponse.json(
@@ -22,10 +49,11 @@ export async function GET(request: NextRequest) {
     }
 
     // List all stores
+    console.log('[Stores API] Calling listStores()...');
     const stores = await listStores();
-    console.log('Fetched stores from Minew API:');
-    console.log('- Count:', stores.length);
-    console.log('- Full data:', JSON.stringify(stores, null, 2));
+    console.log('[Stores API] Fetched stores from Minew API:');
+    console.log('[Stores API] - Count:', stores.length);
+    console.log('[Stores API] - Full data:', JSON.stringify(stores, null, 2));
     if (stores.length > 0) {
       console.log('- First store structure:', {
         id: stores[0].id,
@@ -40,7 +68,7 @@ export async function GET(request: NextRequest) {
   } catch (error) {
     console.error('Error fetching stores:', error);
     return NextResponse.json(
-      { error: 'Failed to fetch stores' },
+      { error: 'Failed to fetch stores', stores: [] },
       { status: 500 }
     );
   }

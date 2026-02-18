@@ -173,51 +173,93 @@ async function importLocalDevicesToMinew(managerId: number, storeId: string) {
 
 /**
  * Sync device status from Minew to local database
+ * This function now creates missing devices in addition to updating existing ones
  */
 async function syncFromMinew(managerId: number, storeId: string) {
   // Get all ESL tags from Minew
   const minewTags = await listESLTags(storeId, { size: 1000 });
 
   let updated = 0;
-  let notFound = 0;
+  let created = 0;
+  let failed = 0;
+  const errors: string[] = [];
 
   for (const tag of minewTags.items) {
     const mac = tag.mac.toLowerCase();
 
-    // Try to find matching local device
-    const localDevice = await prisma.deviceStatus.findFirst({
-      where: {
-        manager_id: managerId,
-        deviceId: {
-          contains: mac.slice(-6), // Match last 6 chars of MAC
-        },
-      },
-    });
-
-    if (localDevice) {
-      // Update local device with Minew status
-      await prisma.deviceStatus.update({
-        where: { id: localDevice.id },
-        data: {
-          isOnline: tag.isOnline === '2' ? 1 : 0,
-          batteryLevel: tag.battery,
-          lastSyncAt: new Date(),
-          currentDisplay: tag.goodsId || null,
-          updatedAt: new Date(),
+    try {
+      // Try to find matching local device by exact MAC or partial match
+      let localDevice = await prisma.deviceStatus.findFirst({
+        where: {
+          manager_id: managerId,
+          deviceId: mac,
         },
       });
-      updated++;
-    } else {
-      notFound++;
+
+      // If not found by exact match, try partial match (last 6 chars)
+      if (!localDevice) {
+        localDevice = await prisma.deviceStatus.findFirst({
+          where: {
+            manager_id: managerId,
+            deviceId: {
+              contains: mac.slice(-6),
+            },
+          },
+        });
+      }
+
+      const deviceData = {
+        deviceType: tag.screenSize ? `E-ink ${tag.screenSize}"` : 'E-ink ESL',
+        deviceName: `ESL-${mac.slice(-6).toUpperCase()}`,
+        batteryLevel: tag.battery,
+        isOnline: tag.isOnline === '2' ? 1 : 0,
+        lastSyncAt: new Date(),
+        currentDisplay: tag.goodsId || null,
+        minewStoreId: storeId,
+        minewSynced: 1,
+        minewBound: tag.bind === '1' ? 1 : 0,
+        minewGoodsId: tag.goodsId || null,
+        minewTemplateId: tag.demoId || null,
+        screenSize: tag.screenSize || null,
+        screenColor: tag.screenInfo?.color || null,
+        updatedAt: new Date(),
+      };
+
+      if (localDevice) {
+        // Update existing device
+        await prisma.deviceStatus.update({
+          where: { id: localDevice.id },
+          data: deviceData,
+        });
+        updated++;
+      } else {
+        // Create new device in local database
+        await prisma.deviceStatus.create({
+          data: {
+            manager_id: managerId,
+            deviceId: mac,
+            ...deviceData,
+            createdAt: new Date(),
+          },
+        });
+        created++;
+      }
+    } catch (error) {
+      failed++;
+      const errorMsg = `Failed to sync ${mac}: ${error instanceof Error ? error.message : 'Unknown error'}`;
+      console.error(errorMsg);
+      errors.push(errorMsg);
     }
   }
 
   return NextResponse.json({
     success: true,
-    message: `Synced ${updated} devices, ${notFound} not found locally`,
+    message: `Synced ${updated} devices, created ${created} new devices, ${failed} failed`,
     minewDevices: minewTags.total,
     updated,
-    notFound,
+    created,
+    failed,
+    errors: errors.length > 0 ? errors : undefined,
   });
 }
 

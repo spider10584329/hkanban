@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { verifyPassword, generateToken } from '@/lib/auth';
+import { listStores } from '@/lib/minew';
 import { z } from 'zod';
 import axios from 'axios';
 
@@ -9,6 +10,23 @@ const signinSchema = z.object({
   password: z.string().min(1, 'Password is required'),
   role: z.enum(['admin', 'agent']),
 });
+
+/**
+ * Fetch the default Minew storeId
+ * This will be cached in the minew_config table and localStorage
+ */
+async function getMinewStoreId(): Promise<string | null> {
+  try {
+    const stores = await listStores(1); // Get active stores
+    if (stores.length > 0) {
+      // Return the first store's ID (single-store architecture)
+      return stores[0].id || stores[0].storeId || null;
+    }
+  } catch (error) {
+    console.error('Failed to fetch Minew storeId during login:', error);
+  }
+  return null;
+}
 
 export async function POST(request: NextRequest) {
   try {
@@ -51,12 +69,16 @@ export async function POST(request: NextRequest) {
             // Generate JWT token with admin role
             const token = generateToken(user.id, 'admin');
 
+            // Fetch Minew storeId for the session
+            const minewStoreId = await getMinewStoreId();
+
             // Return user data and token
             const adminResponse = NextResponse.json(
               {
                 success: true,
                 message: 'Login successful',
                 token,
+                minewStoreId, // Include storeId in response
                 user: {
                   customerId: user.id,
                   id: user.id,
@@ -161,12 +183,16 @@ export async function POST(request: NextRequest) {
       // Generate JWT token with agent role
       const token = generateToken(user.id, 'agent');
 
+      // Fetch Minew storeId for the session
+      const minewStoreId = await getMinewStoreId();
+
       // Return user data and token
       const agentResponse = NextResponse.json(
         {
           success: true,
           message: 'Login successful',
           token,
+          minewStoreId, // Include storeId in response
           user: {
             customerId: user.manager_id,
             id: user.id,

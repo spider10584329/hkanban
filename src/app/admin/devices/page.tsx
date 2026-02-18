@@ -5,20 +5,24 @@ import { useNotification } from '@/hooks/useNotification';
 
 interface Device {
   id: number;
-  deviceId: string;
-  deviceType: string;
-  deviceName: string | null;
-  firmwareVersion: string | null;
-  batteryLevel: number | null;
-  isOnline: number;
-  lastSyncAt: Date | null;
-  lastButtonPress: Date | null;
-  currentDisplay: string | null;
-  displayMessage: string | null;
-  location: string | null;
-  installationDate: Date | null;
-  createdAt: Date;
-  updatedAt: Date;
+  manager_id: number;
+  mac_address: string;
+  status: string;
+  // Legacy fields for backward compatibility (optional)
+  deviceId?: string;
+  deviceType?: string;
+  deviceName?: string | null;
+  firmwareVersion?: string | null;
+  batteryLevel?: number | null;
+  isOnline?: number;
+  lastSyncAt?: Date | null;
+  lastButtonPress?: Date | null;
+  currentDisplay?: string | null;
+  displayMessage?: string | null;
+  location?: string | null;
+  installationDate?: Date | null;
+  createdAt?: Date;
+  updatedAt?: Date;
 }
 
 interface Stats {
@@ -93,6 +97,11 @@ export default function DevicesPage() {
     updateTime?: string;
     localId?: number; // Local DB id for deletion
     localCreatedAt?: string;
+    // Additional fields from Minew cloud
+    model?: string;
+    wifiVersion?: string;
+    bleVersion?: string;
+    ip?: string;
   }>>([]);
   const [minewGatewaysLoading, setMinewGatewaysLoading] = useState(false);
   
@@ -122,6 +131,9 @@ export default function DevicesPage() {
     battery: number;
     bind: string; // '0' = unbound, '1' = bound
     updateTime?: string;
+    // Local database fields
+    localId?: number;
+    localDeviceName?: string;
   }>>([]);
   const [eslTagsLoading, setEslTagsLoading] = useState(false);
   const [isGatewayModalOpen, setIsGatewayModalOpen] = useState(false);
@@ -131,6 +143,14 @@ export default function DevicesPage() {
   });
   const [gatewaySubmitting, setGatewaySubmitting] = useState(false);
   const [gatewayFormError, setGatewayFormError] = useState<string | null>(null);
+
+  // ESL Label modal state
+  const [isESLLabelModalOpen, setIsESLLabelModalOpen] = useState(false);
+  const [eslLabelFormData, setEslLabelFormData] = useState({
+    macAddress: '',
+  });
+  const [eslLabelSubmitting, setEslLabelSubmitting] = useState(false);
+  const [eslLabelFormError, setEslLabelFormError] = useState<string | null>(null);
 
   // Confirmation modal state
   const [confirmModal, setConfirmModal] = useState<{
@@ -175,21 +195,11 @@ export default function DevicesPage() {
 
   const fetchMinewStores = async () => {
     setStoresLoading(true);
-    try {
-      console.log('Fetching stores from /api/minew/stores...');
-      const response = await fetch('/api/minew/stores');
-      console.log('Stores API response status:', response.status, response.ok);
-      const data = await response.json();
-      console.log('Minew stores response data:', data);
-      console.log('data.stores exists?', !!data.stores);
-      console.log('data.stores length:', data.stores?.length);
+    try {      
+      const response = await fetch('/api/minew/stores');    
+      const data = await response.json();  
       
       if (response.ok && data.stores) {
-        console.log('Setting minewStores to:', data.stores);
-        console.log('First store structure:', data.stores[0]);
-        console.log('First store has storeId?:', data.stores[0]?.storeId);
-        console.log('First store has id?:', data.stores[0]?.id);
-        
         // Ensure each store has a storeId property
         const normalizedStores = data.stores.map((store: any) => ({
           storeId: store.storeId || store.id,
@@ -197,18 +207,15 @@ export default function DevicesPage() {
           number: store.number,
         }));
         
-        console.log('Normalized stores:', normalizedStores);
         setMinewStores(normalizedStores);
         
         if (normalizedStores.length > 0 && !selectedStoreId) {
           setSelectedStoreId(normalizedStores[0].storeId);
         }
       } else {
-        console.log('No stores found or response not OK:', response.ok, data);
         setMinewStores([]);
       }
     } catch (err) {
-      console.error('Error fetching Minew stores:', err);
       setMinewStores([]);
     } finally {
       setStoresLoading(false);
@@ -217,7 +224,6 @@ export default function DevicesPage() {
 
   const fetchTemplates = async (storeId: string) => {
     if (!storeId) {
-      console.warn('fetchTemplates called without storeId');
       setTemplatesError('Please select a store first');
       setTemplates([]);
       return;
@@ -226,25 +232,20 @@ export default function DevicesPage() {
     setTemplatesLoading(true);
     setTemplatesError(null);
     try {
-      console.log(`Fetching templates for store: ${storeId}`);
       const response = await fetch(`/api/minew/templates?storeId=${storeId}&page=1&size=50`);
       const data = await response.json();
-      console.log('Templates API response:', data);
 
       if (response.ok && data.templates) {
-        console.log(`Received ${data.templates.length} templates`);
         setTemplates(data.templates);
         setTemplatesError(null);
       } else {
         const errorMsg = data.error || 'Unknown error';
         const fullError = `${errorMsg}${data.details ? ': ' + data.details : ''}`;
-        console.error('Templates fetch error:', fullError);
         setTemplatesError(fullError);
         setTemplates([]);
       }
     } catch (err) {
       const errorMsg = err instanceof Error ? err.message : 'Network error';
-      console.error('Templates fetch exception:', err);
       setTemplatesError(errorMsg);
       setTemplates([]);
     } finally {
@@ -284,9 +285,20 @@ export default function DevicesPage() {
             // Only include if there's a local match (i.e., belongs to this manager)
             if (localMatch) {
               return {
-                ...minewGw,
+                id: minewGw.id,
+                name: minewGw.name,
+                mac: minewGw.mac,
+                storeId: minewGw.storeId,
+                mode: minewGw.mode,
+                version: minewGw.version,
+                updateTime: minewGw.updateTime,
                 localId: localMatch.id,
                 localCreatedAt: localMatch.created_at,
+                // Map additional fields from Minew cloud (handle various possible field names)
+                model: minewGw.model || minewGw.modelNo || minewGw.deviceModel || null,
+                wifiVersion: minewGw.wifiVersion || minewGw.wifiFirmwareVersion || minewGw.wifi_version || null,
+                bleVersion: minewGw.bleVersion || minewGw.bluetoothVersion || minewGw.bleFirmwareVersion || minewGw.ble_version || null,
+                ip: minewGw.ip || minewGw.ipAddress || minewGw.ip_address || null,
               };
             }
             return null;
@@ -307,17 +319,51 @@ export default function DevicesPage() {
   };
 
   const fetchESLTags = async (storeId: string) => {
-    if (!storeId) return;
+    if (!storeId || !managerId) return;
 
     setEslTagsLoading(true);
     try {
-      const response = await fetch(`/api/minew/tags?storeId=${storeId}&page=1&size=50`);
-      const data = await response.json();
+      // Fetch ESL tags from both Minew cloud and local database in parallel
+      const [minewResponse, localResponse] = await Promise.all([
+        fetch(`/api/minew/tags?storeId=${storeId}&page=1&size=100`),
+        fetch(`/api/devices?manager_id=${managerId}&minewSynced=1`)
+      ]);
 
-      if (response.ok && data.tags) {
-        setEslTags(data.tags);
+      const minewData = await minewResponse.json();
+      const localData = await localResponse.json();
+
+      if (minewResponse.ok && minewData.tags && localResponse.ok && localData.devices) {
+        const minewTags = minewData.tags;
+        const localDevices = localData.devices;
+
+        // Match tags by MAC address (only show tags owned by this manager)
+        const matchedTags = minewTags
+          .map((tag: any) => {
+            const normalizedMinewMac = tag.mac.replace(/[:-]/g, '').toLowerCase();
+
+            // Find matching local device
+            const localMatch = localDevices.find((device: any) => {
+              // Use mac_address from new device table schema
+              const macAddress = device.mac_address || device.deviceId;
+              if (!macAddress) return false;
+              const normalizedLocalMac = macAddress.replace(/[:-]/g, '').toLowerCase();
+              return normalizedLocalMac === normalizedMinewMac;
+            });
+
+            // Only include if there's a local match (i.e., belongs to this manager)
+            if (localMatch) {
+              return {
+                ...tag,
+                localId: localMatch.id,
+                localDeviceName: localMatch.deviceName,
+              };
+            }
+            return null;
+          })
+          .filter((tag: any) => tag !== null);
+
+        setEslTags(matchedTags);
       } else {
-        console.error('Failed to fetch ESL tags:', data.error);
         setEslTags([]);
       }
     } catch (err) {
@@ -372,6 +418,80 @@ export default function DevicesPage() {
       macAddress: '',
     });
     setGatewayFormError(null);
+  };
+
+  const openESLLabelModal = () => {
+    setEslLabelFormData({
+      macAddress: '',
+    });
+    setEslLabelFormError(null);
+    setIsESLLabelModalOpen(true);
+  };
+
+  const closeESLLabelModal = () => {
+    setIsESLLabelModalOpen(false);
+    setEslLabelFormData({
+      macAddress: '',
+    });
+    setEslLabelFormError(null);
+  };
+
+  const handleESLLabelSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+
+    if (!eslLabelFormData.macAddress.trim()) {
+      setEslLabelFormError('MAC Address is required');
+      return;
+    }
+
+    if (!selectedStoreId) {
+      setEslLabelFormError('Please select a store first');
+      return;
+    }
+
+    if (!managerId) {
+      setEslLabelFormError('Manager ID not found. Please refresh the page and try again.');
+      return;
+    }
+
+    setEslLabelSubmitting(true);
+    setEslLabelFormError(null);
+
+    try {
+      // Call the API to add ESL label to Minew cloud and local database
+      const response = await fetch('/api/minew/tags/batchAdd', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          storeId: selectedStoreId,
+          macArray: [eslLabelFormData.macAddress.trim()],
+          type: 1,
+          manager_id: managerId,
+        }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || 'Failed to add ESL label');
+      }
+
+      // Success - close modal and show notification
+      closeESLLabelModal();
+      notification.success(
+        'Label Added',
+        `ESL Label with MAC address ${eslLabelFormData.macAddress} has been successfully added to Minew cloud and local database`
+      );
+
+      // Refresh the ESL tags list
+      await fetchESLTags(selectedStoreId);
+    } catch (err) {
+      setEslLabelFormError(err instanceof Error ? err.message : 'Failed to add label');
+    } finally {
+      setEslLabelSubmitting(false);
+    }
   };
 
   const handleGatewaySubmit = async (e: React.FormEvent) => {
@@ -459,6 +579,56 @@ export default function DevicesPage() {
     });
   };
 
+  const handleDeleteESLTag = async (tag: { mac: string; localId?: number }) => {
+    if (!selectedStoreId) {
+      notification.warning('Store Required', 'Please select a Minew store first');
+      return;
+    }
+
+    if (!managerId) {
+      notification.warning('Authentication Required', 'Please log in again');
+      return;
+    }
+
+    setConfirmModal({
+      isOpen: true,
+      title: 'Delete ESL Tag',
+      message: `Are you sure you want to delete the ESL tag with MAC address "${tag.mac}"? This will remove it from both the Minew cloud and local database. This action cannot be undone.`,
+      confirmText: 'Delete',
+      confirmColor: 'red',
+      onConfirm: async () => {
+        try {
+          const response = await fetch('/api/minew/tags', {
+            method: 'DELETE',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              storeId: selectedStoreId,
+              macAddresses: [tag.mac],
+              manager_id: managerId,
+            }),
+          });
+
+          const data = await response.json();
+
+          if (!response.ok) {
+            throw new Error(data.error || 'Failed to delete ESL tag');
+          }
+
+          // Refresh the ESL tags list
+          await fetchESLTags(selectedStoreId);
+          notification.success(
+            'ESL Tag Deleted',
+            `ESL tag "${tag.mac}" has been successfully removed from Minew cloud and local database`
+          );
+        } catch (err) {
+          notification.error('Delete Failed', err instanceof Error ? err.message : 'Failed to delete ESL tag');
+        } finally {
+          setConfirmModal(prev => ({ ...prev, isOpen: false }));
+        }
+      },
+    });
+  };
+
   const handleMinewSync = async (action: string) => {
     if (!managerId || !selectedStoreId) {
       notification.warning('Store Required', 'Please select a Minew store first');
@@ -535,9 +705,9 @@ export default function DevicesPage() {
   const openEditModal = (device: Device) => {
     setEditingDevice(device);
     setFormData({
-      deviceId: device.deviceId,
+      deviceId: device.mac_address || device.deviceId || '',
       deviceName: device.deviceName || '',
-      deviceType: device.deviceType,
+      deviceType: device.deviceType || 'E-ink Display',
       location: device.location || '',
       firmwareVersion: device.firmwareVersion || '',
     });
@@ -611,10 +781,11 @@ export default function DevicesPage() {
   };
 
   const handleDelete = async (device: Device) => {
+    const displayName = device.deviceName || device.mac_address || device.deviceId || 'this device';
     setConfirmModal({
       isOpen: true,
       title: 'Delete Device',
-      message: `Are you sure you want to delete device "${device.deviceName || device.deviceId}"? This action cannot be undone.`,
+      message: `Are you sure you want to delete device "${displayName}"? This action cannot be undone.`,
       confirmText: 'Delete',
       confirmColor: 'red',
       onConfirm: async () => {
@@ -630,7 +801,7 @@ export default function DevicesPage() {
           }
 
           await fetchDevices();
-          notification.success('Device Deleted', `Device "${device.deviceName || device.deviceId}" has been removed`);
+          notification.success('Device Deleted', `Device "${displayName}" has been removed`);
         } catch (err) {
           notification.error('Delete Failed', err instanceof Error ? err.message : 'Failed to delete device');
         } finally {
@@ -694,17 +865,22 @@ export default function DevicesPage() {
   };
 
   const filteredDevices = devices.filter(device => {
+    // Use mac_address from new device table schema
+    const deviceId = (device as any).mac_address || (device as any).deviceId || '';
+    const deviceName = (device as any).deviceName || '';
+    const location = (device as any).location || '';
+    
     const matchesSearch =
-      device.deviceId.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      (device.deviceName && device.deviceName.toLowerCase().includes(searchTerm.toLowerCase())) ||
-      (device.location && device.location.toLowerCase().includes(searchTerm.toLowerCase()));
+      deviceId.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      (deviceName && deviceName.toLowerCase().includes(searchTerm.toLowerCase())) ||
+      (location && location.toLowerCase().includes(searchTerm.toLowerCase()));
 
     const matchesStatus =
       !statusFilter ||
-      (statusFilter === 'online' && device.isOnline === 1) ||
-      (statusFilter === 'offline' && device.isOnline === 0);
+      (statusFilter === 'online' && (device as any).isOnline === 1) ||
+      (statusFilter === 'offline' && (device as any).isOnline === 0);
 
-    const matchesLocation = !locationFilter || device.location === locationFilter;
+    const matchesLocation = !locationFilter || location === locationFilter;
 
     return matchesSearch && matchesStatus && matchesLocation;
   });
@@ -843,7 +1019,7 @@ export default function DevicesPage() {
                     <th className="px-4 py-3 text-left text-xs font-medium text-gray-600">coding</th>
                     <th className="px-4 py-3 text-left text-xs font-medium text-gray-600">PartNo</th>
                     <th className="px-4 py-3 text-left text-xs font-medium text-gray-600">specification</th>
-                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-600">Operate</th>
+                   
                   </tr>
                 </thead>
                 <tbody className="bg-white divide-y divide-gray-200">
@@ -870,27 +1046,7 @@ export default function DevicesPage() {
                         <td className="px-4 py-3 text-sm text-gray-700">{store.name || '-'}</td>
                         <td className="px-4 py-3 text-sm text-gray-700">{store.number || '-'}</td>
                         <td className="px-4 py-3 text-sm text-gray-700">-</td>
-                        <td className="px-4 py-3 text-sm text-gray-700">-</td>
-                        <td className="px-4 py-3">
-                          <div className="flex items-center gap-2">
-                            <button
-                              className="text-blue-600 hover:text-blue-800"
-                              title="Link"
-                            >
-                              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" />
-                              </svg>
-                            </button>
-                            <button
-                              className="text-red-600 hover:text-red-800"
-                              title="Delete"
-                            >
-                              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                              </svg>
-                            </button>
-                          </div>
-                        </td>
+                        <td className="px-4 py-3 text-sm text-gray-700">-</td>                        
                       </tr>
                     ))
                   )}
@@ -981,8 +1137,7 @@ export default function DevicesPage() {
                     <th className="px-4 py-3 text-left text-xs font-medium text-gray-600">template id</th>
                     <th className="px-4 py-3 text-left text-xs font-medium text-gray-600">name</th>
                     <th className="px-4 py-3 text-left text-xs font-medium text-gray-600">display size</th>
-                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-600">color</th>
-                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-600">Operate</th>
+                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-600">color</th>                  
                   </tr>
                 </thead>
                 <tbody className="bg-white divide-y divide-gray-200">
@@ -1037,27 +1192,7 @@ export default function DevicesPage() {
                           }`}>
                             {template.color}
                           </span>
-                        </td>
-                        <td className="px-4 py-3">
-                          <div className="flex items-center gap-2">
-                            <button
-                              className="text-blue-600 hover:text-blue-800"
-                              title="Link"
-                            >
-                              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" />
-                              </svg>
-                            </button>
-                            <button
-                              className="text-red-600 hover:text-red-800"
-                              title="Delete"
-                            >
-                              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                              </svg>
-                            </button>
-                          </div>
-                        </td>
+                        </td>                       
                       </tr>
                     ))
                   )}
@@ -1145,7 +1280,7 @@ export default function DevicesPage() {
                 <input
                   type="text"
                   placeholder="Search"
-                  className="pl-4 pr-10 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  className="pl-4 pr-10 py-2 border border-gray-300 rounded-lg text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
                 />
                 <svg className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
@@ -1228,10 +1363,10 @@ export default function DevicesPage() {
                         <td className="px-4 py-3 text-sm text-gray-700">
                           {gateway.updateTime ? new Date(gateway.updateTime).toLocaleString() : '-'}
                         </td>
-                        <td className="px-4 py-3 text-sm text-gray-700">-</td>
-                        <td className="px-4 py-3 text-sm text-gray-700">-</td>
-                        <td className="px-4 py-3 text-sm text-gray-700">-</td>
-                        <td className="px-4 py-3 text-sm text-gray-700">-</td>
+                        <td className="px-4 py-3 text-sm text-gray-700">{gateway.model || '-'}</td>
+                        <td className="px-4 py-3 text-sm text-gray-700">{gateway.wifiVersion || '-'}</td>
+                        <td className="px-4 py-3 text-sm text-gray-700">{gateway.bleVersion || '-'}</td>
+                        <td className="px-4 py-3 text-sm text-gray-700">{gateway.ip || '-'}</td>
                         <td className="px-4 py-3">
                           <button
                             onClick={() => {
@@ -1334,23 +1469,13 @@ export default function DevicesPage() {
           {/* Action Buttons Bar */}
           <div className="flex flex-wrap items-center justify-between gap-3 bg-white p-4 rounded-lg shadow">
             <div className="flex flex-wrap gap-2">
-              <select
-                className="px-4 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-              >
-                <option>ESL</option>
-              </select>
-              <select
-                className="px-4 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-              >
-                <option>all devices</option>
-              </select>
               <div className="relative">
                 <input
                   type="text"
                   placeholder="Search"
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
-                  className="pl-4 pr-10 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  className="pl-4 pr-10 py-2 border border-gray-300 rounded-lg text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
                 />
                 <svg className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
@@ -1358,39 +1483,14 @@ export default function DevicesPage() {
               </div>
             </div>
             <div className="flex flex-wrap gap-2">
-              <button className="px-4 py-2 bg-cyan-500 text-white rounded-lg hover:bg-cyan-600 transition-colors text-sm font-medium flex items-center gap-2">
-                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
-                </svg>
-                Export
-              </button>
-              <button className="px-4 py-2 bg-orange-500 text-white rounded-lg hover:bg-orange-600 transition-colors text-sm font-medium flex items-center gap-2">
-                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" />
-                </svg>
-                Batch Import
-              </button>
-              <button
-                onClick={handleSyncDevices}
-                disabled={syncing}
-                className="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 disabled:bg-gray-400 transition-colors text-sm font-medium flex items-center gap-2"
+              <button 
+                onClick={openESLLabelModal}
+                className="px-4 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600 transition-colors text-sm font-medium flex items-center gap-2"
               >
-                <svg className={`w-4 h-4 ${syncing ? 'animate-spin' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-                </svg>
-                Refresh
-              </button>
-              <button className="px-4 py-2 bg-purple-500 text-white rounded-lg hover:bg-purple-600 transition-colors text-sm font-medium flex items-center gap-2">
-                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 10h16M4 14h16M4 18h16" />
-                </svg>
-                Column management
-              </button>
-              <button className="px-4 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600 transition-colors text-sm font-medium flex items-center gap-2">
                 <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
                 </svg>
-                More
+                Add
               </button>
             </div>
           </div>
@@ -1408,38 +1508,28 @@ export default function DevicesPage() {
                     <th className="px-4 py-3 text-left text-xs font-medium text-gray-600">MAC address</th>
                     <th className="px-4 py-3 text-left text-xs font-medium text-gray-600">Size(")</th>
                     <th className="px-4 py-3 text-left text-xs font-medium text-gray-600">RSSI</th>
-                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-600">
-                      <div className="flex items-center gap-1">
-                        Battery level(%)
-                        <svg className="w-3 h-3 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                        </svg>
-                      </div>
-                    </th>
+                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-600">Battery level(%)</th>
                     <th className="px-4 py-3 text-left text-xs font-medium text-gray-600">Online status</th>
                     <th className="px-4 py-3 text-left text-xs font-medium text-gray-600">Data ID</th>
-                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-600">Last broadcast time</th>
-                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-600">Number</th>
-                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-600">Remark</th>
                     <th className="px-4 py-3 text-left text-xs font-medium text-gray-600">Operate</th>
                   </tr>
                 </thead>
                 <tbody className="bg-white divide-y divide-gray-200">
                   {eslTagsLoading ? (
                     <tr>
-                      <td colSpan={12} className="px-4 py-12 text-center text-gray-500 text-sm">
+                      <td colSpan={9} className="px-4 py-12 text-center text-gray-500 text-sm">
                         Loading ESL tags from Minew cloud...
                       </td>
                     </tr>
                   ) : !selectedStoreId ? (
                     <tr>
-                      <td colSpan={12} className="px-4 py-12 text-center text-gray-500 text-sm">
+                      <td colSpan={9} className="px-4 py-12 text-center text-gray-500 text-sm">
                         Please select a store to view ESL tags.
                       </td>
                     </tr>
                   ) : eslTags.length === 0 ? (
                     <tr>
-                      <td colSpan={12} className="px-4 py-12 text-center text-gray-500 text-sm">
+                      <td colSpan={9} className="px-4 py-12 text-center text-gray-500 text-sm">
                         No ESL tags found in Minew cloud.
                       </td>
                     </tr>
@@ -1496,30 +1586,10 @@ export default function DevicesPage() {
                         <td className="px-4 py-3 text-sm text-gray-700">
                           {tag.bind === '1' ? 'Bound' : 'Unbound'}
                         </td>
-                        <td className="px-4 py-3 text-sm text-gray-600">
-                          {tag.updateTime ? new Date(tag.updateTime).toLocaleString() : '-'}
-                        </td>
-                        <td className="px-4 py-3 text-sm text-gray-700">{tag.mac}</td>
-                        <td className="px-4 py-3 text-sm text-gray-700">-</td>
                         <td className="px-4 py-3">
                           <div className="flex items-center gap-2">
                             <button
-                              className="text-blue-600 hover:text-blue-800"
-                              title="Link"
-                            >
-                              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" />
-                              </svg>
-                            </button>
-                            <button
-                              className="text-gray-600 hover:text-gray-800"
-                              title="Edit"
-                            >
-                              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
-                              </svg>
-                            </button>
-                            <button
+                              onClick={() => handleDeleteESLTag({ mac: tag.mac, localId: tag.localId })}
                               className="text-red-600 hover:text-red-800"
                               title="Delete"
                             >
@@ -1763,6 +1833,77 @@ export default function DevicesPage() {
                     className="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded hover:bg-blue-700 disabled:opacity-50"
                   >
                     {gatewaySubmitting ? 'Confirming...' : 'Confirm'}
+                  </button>
+                </div>
+              </form>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ESL Label Modal */}
+      {isESLLabelModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center">
+          {/* Backdrop */}
+          <div 
+            className="fixed inset-0 bg-black/50 transition-opacity" 
+            onClick={closeESLLabelModal}
+          />
+          
+          {/* Modal Content */}
+          <div className="relative bg-white rounded-lg shadow-xl max-w-md w-full mx-4 transform transition-all">
+            {/* Header */}
+            <div className="flex items-center justify-between p-4 bg-gray-200 rounded-t-lg">
+              <h3 className="text-lg font-semibold text-gray-900">Add Label</h3>
+              <button
+                onClick={closeESLLabelModal}
+                className="text-gray-400 hover:text-gray-600 transition-colors"
+              >
+                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+
+            {/* Form */}
+            <div className="p-6">
+              <form onSubmit={handleESLLabelSubmit}>
+                {eslLabelFormError && (
+                  <div className="mb-4 p-3 bg-red-50 border border-red-200 text-red-700 rounded-lg text-sm">
+                    {eslLabelFormError}
+                  </div>
+                )}
+
+                <div className="mb-6">
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    MAC Address
+                  </label>
+                  <input
+                    type="text"
+                    value={eslLabelFormData.macAddress}
+                    onChange={(e) => setEslLabelFormData({ ...eslLabelFormData, macAddress: e.target.value })}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
+                    placeholder="Enter MAC address"
+                    disabled={eslLabelSubmitting}
+                  />
+                </div>
+
+                {/* Actions */}
+                <div className="flex justify-end gap-3">
+                  <button
+                    type="button"
+                    onClick={closeESLLabelModal}
+                    disabled={eslLabelSubmitting}
+                    className="px-4 py-2 text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors disabled:opacity-50"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="submit"
+                    disabled={eslLabelSubmitting}
+                    className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50"
+                  >
+                    {eslLabelSubmitting ? 'Confirming...' : 'Confirm'}
                   </button>
                 </div>
               </form>

@@ -12,7 +12,6 @@ interface Product {
   categoryName: string;
   supplierName: string | null;
   location: string;
-  storageRequirements: string | null;
   reorderThreshold: number | null;
   standardOrderQty: number | null;
   unitPrice: number | null;
@@ -228,6 +227,15 @@ export default function ScanPage() {
     setSubmitting(true);
     setError(null);
 
+    // For QR_SCAN, use the product's standard quantity and NORMAL priority automatically.
+    // For MANUAL, use whatever the agent entered in the form fields.
+    const qty = method === 'QR_SCAN'
+      ? (product.standardOrderQty || null)
+      : (manualQuantity ? parseInt(manualQuantity) : product.standardOrderQty);
+    const priority = method === 'QR_SCAN' ? 'NORMAL' : manualPriority;
+    const location = method === 'QR_SCAN' ? product.location : (manualLocation || product.location);
+    const notes = method === 'QR_SCAN' ? null : (manualNotes || null);
+
     try {
       const response = await fetch('/api/requests', {
         method: 'POST',
@@ -238,10 +246,10 @@ export default function ScanPage() {
           requested_by_id: userId,
           request_method: method,
           device_info: method === 'QR_SCAN' ? 'Mobile Scanner' : 'Manual Entry',
-          requested_qty: manualQuantity ? parseInt(manualQuantity) : product.standardOrderQty,
-          location: manualLocation || product.location,
-          notes: manualNotes || null,
-          priority: manualPriority,
+          requested_qty: qty,
+          location,
+          notes,
+          priority,
         }),
       });
 

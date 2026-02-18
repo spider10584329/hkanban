@@ -1,13 +1,52 @@
 import crypto from 'crypto';
+import { 
+  getMinewToken as getTokenFromManager, 
+  invalidateMinewToken,
+  getDefaultStoreId, 
+  minewApiCall as tokenManagedApiCall 
+} from './minewTokenManager';
 
 // Minew ESL Cloud API Configuration
 const MINEW_API_BASE = process.env.MINEW_API_BASE || 'https://cloud.minewesl.com';
 const MINEW_USERNAME = process.env.MINEW_USERNAME || '';
 const MINEW_PASSWORD = process.env.MINEW_PASSWORD || '';
 
-// Token cache
+// DEPRECATED: Old token cache (kept for backward compatibility)
+// Use getTokenFromManager() from minewTokenManager instead
 let cachedToken: string | null = null;
 let tokenExpiry: Date | null = null;
+
+// Re-export the new token manager functions
+export { getDefaultStoreId } from './minewTokenManager';
+
+/**
+ * Get Minew storeId from localStorage (client) or database (server)
+ * This is a convenience function for use throughout the application
+ */
+export function getStoreIdFromSession(): string | null {
+  // Client-side: check localStorage first
+  if (typeof window !== 'undefined') {
+    return localStorage.getItem('minewStoreId');
+  }
+  
+  // Server-side: will need to fetch from database using getDefaultStoreId()
+  return null;
+}
+
+/**
+ * Get Minew storeId with fallback to database
+ * This function works on both client and server
+ */
+export async function getStoreId(): Promise<string | null> {
+  // Try localStorage first (client-side only)
+  const sessionStoreId = getStoreIdFromSession();
+  if (sessionStoreId) {
+    return sessionStoreId;
+  }
+  
+  // Fallback to database
+  return await getDefaultStoreId();
+}
 
 // ==========================================
 // Types and Interfaces
@@ -43,6 +82,11 @@ export interface MinewGateway {
   mode: number; // 1 = online, 0 = offline
   version?: string;
   updateTime?: string;
+  // Additional fields from Minew cloud
+  model?: string;
+  wifiVersion?: string;
+  bleVersion?: string;
+  ip?: string;
 }
 
 export interface MinewESLTag {
@@ -147,10 +191,6 @@ export async function minewLogin(): Promise<{
     const hashedPassword = hashPassword(MINEW_PASSWORD);
     const loginUrl = `${MINEW_API_BASE}/apis/action/login`;
     
-    console.log('[Minew] Attempting login to:', loginUrl);
-    console.log('[Minew] Username:', MINEW_USERNAME);
-    console.log('[Minew] Password hash:', hashedPassword);
-    
     const response = await fetch(loginUrl, {
       method: 'POST',
       headers: {
@@ -163,8 +203,6 @@ export async function minewLogin(): Promise<{
     });
 
     const responseText = await response.text();
-    console.log('[Minew] Response status:', response.status);
-    console.log('[Minew] Response body:', responseText);
     
     let data;
     try {
@@ -218,16 +256,10 @@ export async function minewLogin(): Promise<{
 
 /**
  * Get cached token or login to get a new one
+ * NOW USES DATABASE-BACKED TOKEN MANAGER
  */
 export async function getMinewToken(): Promise<string | null> {
-  // Check if we have a valid cached token
-  if (cachedToken && tokenExpiry && new Date() < tokenExpiry) {
-    return cachedToken;
-  }
-
-  // Login to get a new token
-  const result = await minewLogin();
-  return result.success ? result.token || null : null;
+  return getTokenFromManager();
 }
 
 /**
@@ -259,7 +291,7 @@ export async function testMinewConnection(): Promise<{
 // Helper function for API calls
 // ==========================================
 
-async function minewApiCall<T>(
+export async function minewApiCall<T>(
   endpoint: string,
   options: {
     method?: 'GET' | 'POST' | 'PUT' | 'DELETE';
@@ -267,9 +299,13 @@ async function minewApiCall<T>(
     params?: Record<string, string>;
   } = {}
 ): Promise<MinewApiResponse<T>> {
-  const token = await getMinewToken();
+  console.log('[minewApiCall] Starting call to:', endpoint);
+  let token = await getMinewToken();
+  
+  console.log('[minewApiCall] Token obtained:', token ? 'Yes (length: ' + token.length + ')' : 'No');
   
   if (!token) {
+    console.log('[minewApiCall] No token available, returning error');
     return { code: -1, msg: 'Not authenticated' };
   }
 
@@ -280,6 +316,9 @@ async function minewApiCall<T>(
     const searchParams = new URLSearchParams(params);
     url += `?${searchParams.toString()}`;
   }
+
+  console.log('[minewApiCall] Full URL:', url);
+  console.log('[minewApiCall] Method:', method);
 
   const fetchOptions: RequestInit = {
     method,
@@ -294,8 +333,46 @@ async function minewApiCall<T>(
   }
 
   try {
+    console.log('[minewApiCall] Sending request...');
     const response = await fetch(url, fetchOptions);
+    console.log('[minewApiCall] Response status:', response.status);
+    
     const data = await response.json();
+    console.log('[minewApiCall] Response data:', JSON.stringify(data, null, 2));
+    
+    // If token is invalid, clear cache and retry once with fresh token
+    // Check for various token error codes: -1, 14002, or message contains "token"
+    const isTokenError = 
+      data.code === -1 || 
+      data.code === 14002 || 
+      (data.msg && data.msg.toLowerCase().includes('token'));
+      
+    if (isTokenError) {
+      console.log('[minewApiCall] Token invalid (code: ' + data.code + '), refreshing...');
+      
+      // Invalidate the cached token
+      await invalidateMinewToken();
+      
+      // Get a fresh token with force refresh
+      token = await getMinewToken();
+      if (!token) {
+        return { code: -1, msg: 'Failed to refresh token' };
+      }
+      
+      console.log('[minewApiCall] Retrying with new token...');
+      
+      // Retry the request with the new token
+      fetchOptions.headers = {
+        'Content-Type': 'application/json;charset=utf-8',
+        'token': token,
+      };
+      
+      const retryResponse = await fetch(url, fetchOptions);
+      const retryData = await retryResponse.json();
+      console.log('[minewApiCall] Retry response:', JSON.stringify(retryData, null, 2));
+      return retryData;
+    }
+    
     return data;
   } catch (error) {
     console.error('[Minew API Error]', error);
@@ -312,7 +389,11 @@ async function minewApiCall<T>(
  * Based on Minew ESL Cloud Platform API - Section 2.5 Get store information
  */
 export async function listStores(active: 0 | 1 = 1, condition?: string): Promise<MinewStore[]> {
+  console.log('[listStores] Starting with params:', { active, condition });
+  
   const params: Record<string, string> = {
+    page: '1',
+    size: '100',
     active: String(active),
   };
 
@@ -320,24 +401,32 @@ export async function listStores(active: 0 | 1 = 1, condition?: string): Promise
     params.condition = condition;
   }
 
-  const response = await minewApiCall<MinewStore[] | { items: MinewStore[] }>(
-    '/apis/esl/store/list',
+  console.log('[listStores] Calling minewApiCall with params:', params);
+
+  // Use listPage endpoint - response structure: { code, msg, data: { items: [...] } }
+  const response = await minewApiCall<{ items?: MinewStore[] }>(
+    '/apis/esl/store/listPage',
     { params }
   );
 
-  if (response.code === 200 && response.data) {
-    // Handle both array response and object with items
-    const stores = Array.isArray(response.data) ? response.data : response.data.items || [];
+  console.log('[listStores] Raw response:', JSON.stringify(response, null, 2));
+  console.log('[listStores] Response code:', response.code);
+  console.log('[listStores] Response has data:', !!response.data);
+  console.log('[listStores] Response data has items:', !!response.data?.items);
 
+  if (response.code === 200 && response.data?.items) {
+    const stores = response.data.items;
+    console.log('[listStores] Found', stores.length, 'stores');
     // Map id to storeId for backward compatibility
-    const mappedStores = stores.map(store => ({
+    const mappedStores = stores.map((store: MinewStore) => ({
       ...store,
-      storeId: store.id || store.storeId, // Use id as storeId
+      storeId: store.id || store.storeId,
     }));
-
+    console.log('[listStores] Returning mapped stores:', JSON.stringify(mappedStores, null, 2));
     return mappedStores;
   }
 
+  console.log('[listStores] No stores found or response code not 200');
   return [];
 }
 
@@ -389,24 +478,32 @@ export async function toggleStore(storeId: string, active: boolean): Promise<boo
  * List gateways for a store
  */
 export async function listGateways(storeId: string): Promise<MinewGateway[]> {
-  // The listPage endpoint returns items at root level, not under data
+  console.log('[listGateways] Starting with storeId:', storeId);
+  
+  // Use listPage endpoint
+  // NOTE: Gateway listPage returns items at ROOT level, not under data!
+  // Response structure: { code, msg, items: [...], totalNum, ... }
   const response = await minewApiCall<{ items?: MinewGateway[] }>('/apis/esl/gateway/listPage', {
     params: { page: '1', size: '100', storeId },
   });
 
-  // Handle response where items may be at root level or under data
-  if (response.code === 200) {
-    // Check for items at root level first (listPage response format)
-    const anyResponse = response as any;
-    if (anyResponse.items) {
-      return anyResponse.items;
-    }
-    // Fallback to data.items
-    if (response.data?.items) {
-      return response.data.items;
-    }
+  console.log('[listGateways] Raw response:', JSON.stringify(response, null, 2));
+  console.log('[listGateways] Response code:', response.code);
+  
+  // Check for items at ROOT level first (gateway listPage structure)
+  const anyResponse = response as any;
+  if (response.code === 200 && anyResponse.items) {
+    console.log('[listGateways] Found', anyResponse.items.length, 'gateways at root level');
+    return anyResponse.items;
+  }
+  
+  // Fallback: check under data (store listPage structure)
+  if (response.code === 200 && response.data?.items) {
+    console.log('[listGateways] Found', response.data.items.length, 'gateways under data');
+    return response.data.items;
   }
 
+  console.log('[listGateways] No gateways found or response code not 200');
   return [];
 }
 
@@ -417,15 +514,22 @@ export async function addGateway(gateway: {
   mac: string;
   name: string;
   storeId: string;
-}): Promise<{ success: boolean; error?: string }> {
+}): Promise<{ success: boolean; error?: string; code?: number; message?: string }> {
   const response = await minewApiCall('/apis/esl/gateway/add', {
     method: 'POST',
     body: gateway,
   });
   
+  if (response.code === 200) {
+    return { success: true };
+  }
+  
+  // Return detailed error information including code
   return {
-    success: response.code === 200,
-    error: response.code !== 200 ? response.msg : undefined,
+    success: false,
+    error: response.msg,
+    code: response.code,
+    message: response.msg
   };
 }
 
@@ -478,7 +582,13 @@ export async function getGatewayStats(storeId: string): Promise<GatewayStats> {
 export async function importESLTags(
   storeId: string,
   macAddresses: string[]
-): Promise<{ success: boolean; results?: Record<string, string>; error?: string }> {
+): Promise<{ 
+  success: boolean; 
+  results?: Record<string, string>; 
+  error?: string;
+  code?: number;
+  message?: string;
+}> {
   const response = await minewApiCall<Record<string, string>>('/apis/esl/label/batchAdd', {
     method: 'POST',
     body: {
@@ -488,14 +598,69 @@ export async function importESLTags(
     },
   });
   
-  if (response.code === 200 && response.data) {
-    return { success: true, results: response.data };
+  // Check if the API call itself failed (non-200 code)
+  if (response.code !== 200) {
+    return { 
+      success: false, 
+      error: response.msg,
+      code: response.code,
+      message: response.msg
+    };
   }
-  return { success: false, error: response.msg };
+  
+  // If code is 200, check the data for individual MAC results
+  // Minew batchAdd returns a map of MAC -> result status
+  // The data structure can be:
+  // 1. { "mac": "0" } - success (0 means success)
+  // 2. { "mac": "error message" } - failure with error message
+  // 3. null/undefined - no data returned
+  if (response.data) {
+    const results = response.data;
+    
+    // Check each MAC result - "0" means success, anything else is an error
+    const errorEntries = Object.entries(results).filter(([mac, status]) => {
+      return String(status) !== '0';
+    });
+    
+    if (errorEntries.length > 0) {
+      const [failedMac, errorMessage] = errorEntries[0];
+      
+      // Return the actual error message from Minew
+      return {
+        success: false,
+        error: String(errorMessage),
+        code: response.code,
+        message: String(errorMessage),
+        results: results
+      };
+    }
+    
+    return { success: true, results: results };
+  }
+  
+  // Return detailed error information including code
+  return { 
+    success: false, 
+    error: response.msg || 'No data returned from Minew API',
+    code: response.code,
+    message: response.msg || 'No data returned from Minew API'
+  };
 }
 
 /**
  * List ESL tags for a store
+ * API Documentation: Minew ESL Cloud Platform API V5.0.24
+ * Endpoint: /apis/esl/label/cascadQuery
+ *
+ * Response structure (items are at root level, not nested under data):
+ * {
+ *   "code": 200,
+ *   "msg": "success",
+ *   "currentPage": 1,
+ *   "pageSize": 10,
+ *   "totalNum": 4,
+ *   "items": [...]
+ * }
  */
 export async function listESLTags(
   storeId: string,
@@ -512,26 +677,46 @@ export async function listESLTags(
     bound: '8',
     unbound: '9',
   };
-  
+
   const params: Record<string, string> = {
     page: String(options?.page || 1),
     size: String(options?.size || 50),
     storeId,
-    type: '1',
+    type: '1', // 1 = ESL tag, 2 = warning light
   };
-  
+
+  // Add status filter if provided
   if (options?.status && statusMap[options.status]) {
     params.eqstatus = statusMap[options.status];
   }
-  
-  const response = await minewApiCall<{ items: MinewESLTag[]; totalNum: number }>(
+
+  // Call Minew API
+  const response = await minewApiCall<any>(
     '/apis/esl/label/cascadQuery',
     { params }
   );
-  
-  if (response.code === 200 && response.data) {
-    return { items: response.data.items || [], total: response.data.totalNum || 0 };
+
+  // According to API documentation, items are at root level, not nested under data
+  if (response.code === 200) {
+    // Cast to any to access root-level properties
+    const responseData = response as any;
+
+    // Check if items are directly in response (API doc structure)
+    if (responseData.items !== undefined) {
+      return {
+        items: responseData.items || [],
+        total: responseData.totalNum || 0
+      };
+    }
+    // Fallback: check if items are nested under data
+    if (response.data?.items !== undefined) {
+      return {
+        items: response.data.items || [],
+        total: response.data.totalNum || 0
+      };
+    }
   }
+
   return { items: [], total: 0 };
 }
 
@@ -558,14 +743,36 @@ export async function wakeupESLTags(storeId: string, macAddresses: string[]): Pr
 }
 
 /**
- * Delete ESL tags
+ * Delete ESL tags from Minew Cloud
+ * API: POST /apis/esl/label/batchDeleteLabels
+ * Body: { storeId: string, macs: string[] }
+ * Note: MAC addresses must be lowercase
  */
-export async function deleteESLTags(storeId: string, macAddresses: string[]): Promise<boolean> {
-  const response = await minewApiCall('/apis/esl/label/batchDeleteLabels', {
+export async function deleteESLTags(
+  storeId: string,
+  macAddresses: string[]
+): Promise<{ success: boolean; error?: string }> {
+  // Normalize MAC addresses to lowercase (API requirement)
+  const normalizedMacs = macAddresses.map(mac =>
+    mac.replace(/[:-]/g, '').toLowerCase()
+  );
+
+  const response = await minewApiCall<any>('/apis/esl/label/batchDeleteLabels', {
     method: 'POST',
-    body: { storeId, macArray: macAddresses },
+    body: {
+      storeId,
+      macs: normalizedMacs,
+    },
   });
-  return response.code === 200;
+
+  if (response.code === 200) {
+    return { success: true };
+  }
+
+  return {
+    success: false,
+    error: response.msg || 'Failed to delete tags from Minew cloud',
+  };
 }
 
 /**
@@ -631,10 +838,20 @@ export async function addInventoryData(
   storeId: string,
   data: Record<string, string>
 ): Promise<{ success: boolean; error?: string }> {
-  const response = await minewApiCall('/apis/esl/goods/add', {
+  console.log('=== Minew addInventoryData Request ===');
+  console.log('Endpoint: /apis/esl/goods/addToStore');
+  console.log('StoreId:', storeId);
+  console.log('Data:', JSON.stringify(data, null, 2));
+  
+  const response = await minewApiCall('/apis/esl/goods/addToStore', {
     method: 'POST',
     body: { storeId, ...data },
   });
+  
+  console.log('=== Minew addInventoryData Response ===');
+  console.log('Response code:', response.code);
+  console.log('Response msg:', response.msg);
+  console.log('Full response:', JSON.stringify(response, null, 2));
   
   return {
     success: response.code === 200,
@@ -887,6 +1104,145 @@ export async function getWarnings(storeId: string): Promise<unknown[]> {
   });
   
   return response.code === 200 && response.data ? response.data : [];
+}
+
+// ==========================================
+// Action Logs (Button Events)
+// ==========================================
+
+export interface MinewActionLog {
+  id: string;
+  operator: string;
+  commodity: string;
+  labelMac: string;
+  result: string;
+  objectType: string;
+  actionType: string;
+  storeId: string;
+  createTime: string;
+  gatewayMac: string;
+  opCode: string;
+  goods?: {
+    id: string;
+    storeId: string;
+    name?: string;
+    price?: string;
+    specification?: string;
+    barcode?: string;
+    memberPrice?: string;
+    [key: string]: string | undefined;
+  };
+}
+
+export async function getActionLogs(
+  storeId: string,
+  options?: {
+    page?: number;
+    size?: number;
+    actionType?: string;
+    startTime?: string;
+    endTime?: string;
+  }
+): Promise<{ items: MinewActionLog[]; totalNum: number }> {
+  const body: Record<string, string | number> = {
+    storeId,
+    objectType: '1',
+    currentPage: options?.page || 1,
+    pageSize: options?.size || 100,
+  };
+
+  if (options?.actionType) body.actionType = options.actionType;
+  if (options?.startTime) body.startTime = options.startTime;
+  if (options?.endTime) body.endTime = options.endTime;
+
+  const response = await minewApiCall<{
+    items?: MinewActionLog[];
+    totalNum?: number;
+  }>('/apis/esl/logs/queryList', { 
+    method: 'POST',
+    body 
+  });
+
+  if (response.code === 200 && response.data) {
+    return {
+      items: response.data.items || [],
+      totalNum: response.data.totalNum || 0,
+    };
+  }
+
+  return { items: [], totalNum: 0 };
+}
+
+export async function getButtonEvents(
+  storeId: string,
+  startTime?: string,
+  endTime?: string
+): Promise<MinewActionLog[]> {
+  const result = await getActionLogs(storeId, {
+    actionType: '6',
+    startTime,
+    endTime,
+    size: 1000,
+  });
+  
+  return result.items.filter(log => log.goods && log.goods.id);
+}
+
+// ==========================================
+// Wake-up API (for MIX firmware tags)
+// ==========================================
+
+export async function wakeUpTags(
+  storeId: string,
+  macAddresses: string[]
+): Promise<{ success: boolean; error?: string; code?: number }> {
+  const response = await minewApiCall('/apis/esl/label/batchWake', {
+    method: 'POST',
+    params: { storeId },
+    body: macAddresses,
+  });
+
+  if (response.code === 200) {
+    return { success: true };
+  } else if (response.code === 54041) {
+    return { success: true, code: 54041 };
+  } else if (response.code === 54015) {
+    return { success: false, error: 'Gateway offline', code: 54015 };
+  } else if (response.code === 54031) {
+    return { success: false, error: 'Tag offline', code: 54031 };
+  }
+
+  return {
+    success: false,
+    error: response.msg || 'Wake-up failed',
+    code: response.code,
+  };
+}
+
+export async function getAllTagsForWakeup(storeId: string): Promise<string[]> {
+  const response = await minewApiCall<{
+    items?: Array<{
+      mac: string;
+      firmwareType?: string;
+      isOnline?: string;
+    }>;
+  }>('/apis/esl/label/cascadQuery', {
+    params: {
+      page: '1',
+      size: '100',
+      storeId,
+      eqstatus: '1,2,5,8,9',
+      type: '1',
+    },
+  });
+
+  if (response.code === 200 && response.data?.items) {
+    return response.data.items
+      .filter(tag => tag.firmwareType === '0' && tag.isOnline === '2')
+      .map(tag => tag.mac);
+  }
+
+  return [];
 }
 
 // ==========================================

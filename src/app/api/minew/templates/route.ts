@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { listTemplates } from '@/lib/minew';
+import { listTemplates, testMinewConnection } from '@/lib/minew';
 
 /**
  * GET - List templates for a store
@@ -21,6 +21,21 @@ export async function GET(request: NextRequest) {
       return NextResponse.json(
         { error: 'storeId is required' },
         { status: 400 }
+      );
+    }
+
+    // Test connection first to ensure we have a valid token
+    const connectionStatus = await testMinewConnection();
+    
+    if (!connectionStatus.connected) {
+      console.error('Minew connection failed:', connectionStatus.message);
+      return NextResponse.json(
+        { 
+          error: 'Failed to connect to Minew cloud',
+          details: connectionStatus.message,
+          templates: [] // Return empty array to prevent frontend errors
+        },
+        { status: 503 }
       );
     }
 
@@ -67,13 +82,18 @@ export async function GET(request: NextRequest) {
     }));
 
     return NextResponse.json({
+      success: true,
       templates: transformedTemplates,
       count: transformedTemplates.length
     });
   } catch (error) {
     console.error('Error fetching templates:', error);
     return NextResponse.json(
-      { error: 'Failed to fetch templates', details: error instanceof Error ? error.message : 'Unknown error' },
+      { 
+        error: 'Failed to fetch templates', 
+        details: error instanceof Error ? error.message : 'Unknown error',
+        templates: [] // Return empty array to prevent frontend errors
+      },
       { status: 500 }
     );
   }

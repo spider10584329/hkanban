@@ -53,6 +53,7 @@ export async function GET(request: NextRequest) {
         where: { manager_id: managerIdNum },
         select: {
           id: true,
+          productId: true,
           status: true,
           priority: true,
           createdAt: true,
@@ -122,7 +123,13 @@ export async function GET(request: NextRequest) {
       active: products.filter(p => p.isActive === 1).length,
       withQrCode: products.filter(p => p.qrCodeUrl).length,
       withEink: products.filter(p => p.hasEinkDevice === 1).length,
-      lowStock: products.filter(p => p.reorderThreshold && p.reorderThreshold > 0).length,
+      // Low stock is determined by pending replenishment requests from ESL/QR scans
+      // Count unique products that have pending requests
+      lowStock: new Set(
+        requests
+          .filter(r => r.status === 'PENDING')
+          .map(r => r.productId)
+      ).size,
     };
 
     // Calculate order stats

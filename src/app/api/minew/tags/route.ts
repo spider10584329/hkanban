@@ -7,6 +7,7 @@ import {
   wakeupESLTags,
   locateESLTag,
   getESLTagStats,
+  testMinewConnection,
 } from '@/lib/minew';
 
 /**
@@ -21,6 +22,21 @@ export async function GET(request: NextRequest) {
     const page = parseInt(searchParams.get('page') || '1');
     const size = parseInt(searchParams.get('size') || '50');
     const status = searchParams.get('status') as 'online' | 'offline' | 'lowBattery' | 'bound' | 'unbound' | null;
+
+    // Test connection first to ensure we have a valid token
+    const connectionStatus = await testMinewConnection();
+    
+    if (!connectionStatus.connected) {
+      console.error('Minew connection failed:', connectionStatus.message);
+      return NextResponse.json(
+        { 
+          error: 'Failed to connect to Minew cloud',
+          details: connectionStatus.message,
+          tags: [] // Return empty array to prevent frontend errors
+        },
+        { status: 503 }
+      );
+    }
 
     // Get single tag by MAC
     if (mac) {
@@ -58,7 +74,7 @@ export async function GET(request: NextRequest) {
   } catch (error) {
     console.error('Error fetching ESL tags:', error);
     return NextResponse.json(
-      { error: 'Failed to fetch ESL tags' },
+      { error: 'Failed to fetch ESL tags', tags: [] },
       { status: 500 }
     );
   }
@@ -162,11 +178,11 @@ export async function POST(request: NextRequest) {
 }
 
 /**
- * DELETE - Delete ESL tags
+ * DELETE - Delete ESL tags from both Minew Cloud and Local Database
  */
 export async function DELETE(request: NextRequest) {
   try {
-    const { storeId, macAddresses } = await request.json();
+    const { storeId, macAddresses, manager_id } = await request.json();
 
     if (!storeId || !macAddresses || !Array.isArray(macAddresses)) {
       return NextResponse.json(
@@ -175,20 +191,68 @@ export async function DELETE(request: NextRequest) {
       );
     }
 
-    const cleanMacs = macAddresses.map((m: string) => 
-      m.replace(/[:-]/g, '').toLowerCase()
-    );
-
-    const success = await deleteESLTags(storeId, cleanMacs);
-
-    if (!success) {
+    if (!manager_id) {
       return NextResponse.json(
-        { error: 'Failed to delete ESL tags' },
+        { error: 'manager_id is required' },
         { status: 400 }
       );
     }
 
-    return NextResponse.json({ success: true });
+    const cleanMacs = macAddresses.map((m: string) =>
+      m.replace(/[:-]/g, '').toLowerCase()
+    );
+
+    console.log('[Delete Tags] Starting deletion for:', { storeId, cleanMacs, manager_id });
+
+    // 1. Delete from Minew Cloud
+    const minewResult = await deleteESLTags(storeId, cleanMacs);
+    console.log('[Delete Tags] Minew Cloud result:', minewResult);
+
+    // 2. Delete from Local Database (regardless of Minew result)
+    const { prisma } = await import('@/lib/prisma');
+    const localDeleteResults: { mac: string; success: boolean; error?: string }[] = [];
+
+    for (const mac of cleanMacs) {
+      try {
+        // Find and delete device from local database
+        const existingDevice = await prisma.device.findFirst({
+          where: {
+            manager_id: Number(manager_id),
+            mac_address: mac,
+          },
+        });
+
+        if (existingDevice) {
+          await prisma.device.delete({
+            where: { id: existingDevice.id },
+          });
+          console.log(`[Delete Tags] Deleted ${mac} from local database`);
+          localDeleteResults.push({ mac, success: true });
+        } else {
+          console.log(`[Delete Tags] Device ${mac} not found in local database`);
+          localDeleteResults.push({ mac, success: true }); // Consider success if not found
+        }
+      } catch (dbError) {
+        console.error(`[Delete Tags] Failed to delete ${mac} from local database:`, dbError);
+        localDeleteResults.push({
+          mac,
+          success: false,
+          error: dbError instanceof Error ? dbError.message : 'Database error',
+        });
+      }
+    }
+
+    const localSuccessCount = localDeleteResults.filter(r => r.success).length;
+
+    // Return combined result
+    return NextResponse.json({
+      success: minewResult.success || localSuccessCount > 0,
+      message: `Deleted ${localSuccessCount}/${cleanMacs.length} tags`,
+      data: {
+        minew: minewResult,
+        localDatabase: localDeleteResults,
+      },
+    });
   } catch (error) {
     console.error('Error deleting ESL tags:', error);
     return NextResponse.json(

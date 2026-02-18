@@ -79,12 +79,19 @@ export async function POST(request: NextRequest) {
     const result = await addInventoryData(storeId, data);
 
     if (!result.success) {
+      console.error('Minew addInventoryData failed:', {
+        storeId,
+        dataId: data.id,
+        error: result.error,
+        sentData: data,
+      });
       return NextResponse.json(
         { error: result.error || 'Failed to add inventory data' },
         { status: 400 }
       );
     }
 
+    console.log('Minew addInventoryData success:', { storeId, dataId: data.id });
     return NextResponse.json({ success: true, id: data.id });
   } catch (error) {
     console.error('Error adding inventory data:', error);

@@ -67,7 +67,6 @@ export async function GET(request: NextRequest) {
         supplierId: product.supplierId,
         supplierName: product.supplier?.name || null,
         location: product.location,
-        storageRequirements: product.storageRequirements,
         reorderThreshold: product.reorderThreshold,
         standardOrderQty: product.standardOrderQty,
         unitPrice: product.unitPrice,

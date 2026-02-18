@@ -1,6 +1,14 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
+
+// Decode JWT without a library
+function decodeToken(token: string) {
+  try {
+    const base64 = token.split('.')[1].replace(/-/g, '+').replace(/_/g, '/');
+    return JSON.parse(decodeURIComponent(atob(base64).split('').map(c => '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2)).join('')));
+  } catch { return null; }
+}
 
 interface Request {
   id: number;
@@ -63,15 +71,27 @@ export default function RequestsPage() {
   const [statusFilter, setStatusFilter] = useState('');
   const [priorityFilter, setPriorityFilter] = useState('');
   const [methodFilter, setMethodFilter] = useState('');
+  const [managerId, setManagerId] = useState<number | null>(null);
+  const [currentUserId, setCurrentUserId] = useState<number | null>(null);
 
-  // TODO: Get actual manager_id from authenticated session
-  const managerId = 25;
-
+  // Read auth from localStorage (same pattern as agent pages)
   useEffect(() => {
-    fetchRequests();
+    const token = localStorage.getItem('token');
+    const userData = localStorage.getItem('user');
+    const decoded = decodeToken(token || '');
+    if (decoded?.userId) setCurrentUserId(decoded.userId);
+    if (userData) {
+      try {
+        const parsed = JSON.parse(userData);
+        setManagerId(parsed.customerId || parsed.manager_id || 25);
+      } catch { setManagerId(25); }
+    } else {
+      setManagerId(25);
+    }
   }, []);
 
-  const fetchRequests = async () => {
+  const fetchRequests = useCallback(async () => {
+    if (!managerId) return;
     try {
       setLoading(true);
       const response = await fetch(`/api/requests?manager_id=${managerId}`);
@@ -90,7 +110,19 @@ export default function RequestsPage() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [managerId]);
+
+  // Initial fetch when managerId is ready
+  useEffect(() => {
+    if (managerId) fetchRequests();
+  }, [managerId, fetchRequests]);
+
+  // Auto-refresh every 30 seconds to pick up webhook-created requests
+  useEffect(() => {
+    if (!managerId) return;
+    const interval = setInterval(fetchRequests, 30000);
+    return () => clearInterval(interval);
+  }, [managerId, fetchRequests]);
 
   const handleUpdateStatus = async (requestId: number, newStatus: string, rejectionReason?: string) => {
     try {
@@ -100,7 +132,7 @@ export default function RequestsPage() {
       };
 
       if (newStatus === 'APPROVED') {
-        body.approved_by_id = 1; // TODO: Get from session
+        body.approved_by_id = currentUserId || 1;
       }
 
       if (newStatus === 'REJECTED' && rejectionReason) {
@@ -307,6 +339,15 @@ export default function RequestsPage() {
           <h1 className="text-xl sm:text-2xl font-bold text-gray-800">Replenishment Requests</h1>
           <p className="text-xs sm:text-sm text-gray-600 mt-1">Approve and manage stock replenishment requests</p>
         </div>
+        <button
+          onClick={fetchRequests}
+          className="flex items-center gap-2 px-4 py-2 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors text-sm text-gray-700 self-start sm:self-auto"
+        >
+          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+          </svg>
+          Refresh
+        </button>
       </div>
 
       {/* Stats Cards */}
@@ -392,6 +433,7 @@ export default function RequestsPage() {
                 <th className="px-3 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider hidden lg:table-cell">Location</th>
                 <th className="px-3 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider hidden xl:table-cell">Method</th>
                 <th className="px-3 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider hidden md:table-cell">Requested By</th>
+                <th className="px-3 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider hidden sm:table-cell">Qty</th>
                 <th className="px-3 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Priority</th>
                 <th className="px-3 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
                 <th className="px-3 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider hidden lg:table-cell">Date</th>
@@ -401,7 +443,7 @@ export default function RequestsPage() {
             <tbody className="bg-white divide-y divide-gray-200">
               {filteredRequests.length === 0 ? (
                 <tr>
-                  <td colSpan={9} className="px-3 sm:px-6 py-12 text-center text-gray-500 text-sm">
+                  <td colSpan={10} className="px-3 sm:px-6 py-12 text-center text-gray-500 text-sm">
                     {searchTerm || statusFilter || priorityFilter || methodFilter
                       ? 'No requests found matching your filters.'
                       : 'No replenishment requests found. Requests will appear here when staff scans QR codes or presses E-ink buttons.'}
@@ -429,6 +471,11 @@ export default function RequestsPage() {
                     </td>
                     <td className="px-3 sm:px-6 py-4 whitespace-nowrap hidden md:table-cell">
                       <div className="text-xs sm:text-sm text-gray-900">{request.requestedBy.username}</div>
+                    </td>
+                    <td className="px-3 sm:px-6 py-4 whitespace-nowrap hidden sm:table-cell">
+                      <div className="text-xs sm:text-sm font-medium text-gray-900">
+                        {request.requestedQty != null ? request.requestedQty : <span className="text-gray-400">—</span>}
+                      </div>
                     </td>
                     <td className="px-3 sm:px-6 py-4 whitespace-nowrap">
                       {getPriorityBadge(request.priority)}

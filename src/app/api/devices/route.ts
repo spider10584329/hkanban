@@ -14,41 +14,41 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    const devices = await prisma.deviceStatus.findMany({
+    const devices = await prisma.device.findMany({
       where: {
         manager_id: parseInt(managerId),
       },
       orderBy: {
-        createdAt: 'desc',
+        id: 'desc',
       },
     });
 
     // Calculate stats
     const totalDevices = devices.length;
-    const onlineDevices = devices.filter(d => d.isOnline === 1).length;
-    const offlineDevices = totalDevices - onlineDevices;
-    const lowBatteryDevices = devices.filter(d => d.batteryLevel !== null && d.batteryLevel < 20).length;
-    
-    // Active today (devices that synced in the last 24 hours)
-    const yesterday = new Date();
-    yesterday.setDate(yesterday.getDate() - 1);
-    const activeToday = devices.filter(d => 
-      d.lastSyncAt && new Date(d.lastSyncAt) > yesterday
-    ).length;
+    const activeDevices = devices.filter(d => d.status === 'active').length;
+    const inactiveDevices = totalDevices - activeDevices;
 
-    // Get unique locations
-    const locations = [...new Set(devices.map(d => d.location).filter(Boolean))];
+    // Map devices to the format expected by the Products page dropdown
+    const mappedDevices = devices.map(device => ({
+      id: device.id,
+      deviceId: device.mac_address,  // MAC address is used as deviceId for ESL tags
+      deviceName: null,  // Can be enhanced later to store device names
+      location: null,    // Can be enhanced later to store locations
+      isOnline: device.status === 'active' ? 1 : 0,
+    }));
 
     return NextResponse.json({
-      devices,
+      devices: mappedDevices,
       stats: {
         totalDevices,
-        onlineDevices,
-        offlineDevices,
-        lowBatteryDevices,
-        activeToday,
+        activeDevices,
+        inactiveDevices,
+        onlineDevices: activeDevices,
+        offlineDevices: inactiveDevices,
+        lowBatteryDevices: 0,
+        activeToday: 0,
       },
-      locations,
+      locations: [],
     });
   } catch (error) {
     console.error('Error fetching devices:', error);
@@ -62,48 +62,38 @@ export async function GET(request: NextRequest) {
 // POST - Register a new device
 export async function POST(request: NextRequest) {
   try {
-    const {
-      manager_id,
-      deviceId,
-      deviceType,
-      deviceName,
-      location,
-      firmwareVersion,
-    } = await request.json();
+    const { manager_id, mac_address, status = 'active' } = await request.json();
 
-    if (!manager_id || !deviceId || !deviceType) {
+    if (!manager_id || !mac_address) {
       return NextResponse.json(
-        { error: 'manager_id, deviceId, and deviceType are required' },
+        { error: 'manager_id and mac_address are required' },
         { status: 400 }
       );
     }
 
+    // Normalize MAC address
+    const normalizedMac = mac_address.replace(/[:-]/g, '').toLowerCase();
+
     // Check if device already exists for this manager
-    const existingDevice = await prisma.deviceStatus.findFirst({
+    const existingDevice = await prisma.device.findFirst({
       where: {
         manager_id: parseInt(manager_id),
-        deviceId: deviceId.trim(),
+        mac_address: normalizedMac,
       },
     });
 
     if (existingDevice) {
       return NextResponse.json(
-        { error: 'A device with this ID already exists' },
+        { error: 'A device with this MAC address already exists' },
         { status: 409 }
       );
     }
 
-    const device = await prisma.deviceStatus.create({
+    const device = await prisma.device.create({
       data: {
         manager_id: parseInt(manager_id),
-        deviceId: deviceId.trim(),
-        deviceType: deviceType.trim(),
-        deviceName: deviceName?.trim() || null,
-        location: location?.trim() || null,
-        firmwareVersion: firmwareVersion?.trim() || null,
-        isOnline: 0,
-        installationDate: new Date(),
-        updatedAt: new Date(),
+        mac_address: normalizedMac,
+        status: status,
       },
     });
 
@@ -120,13 +110,7 @@ export async function POST(request: NextRequest) {
 // PUT - Update a device
 export async function PUT(request: NextRequest) {
   try {
-    const {
-      id,
-      deviceName,
-      location,
-      deviceType,
-      firmwareVersion,
-    } = await request.json();
+    const { id, status } = await request.json();
 
     if (!id) {
       return NextResponse.json(
@@ -135,14 +119,10 @@ export async function PUT(request: NextRequest) {
       );
     }
 
-    const updatedDevice = await prisma.deviceStatus.update({
+    const updatedDevice = await prisma.device.update({
       where: { id: parseInt(id) },
       data: {
-        deviceName: deviceName?.trim() || null,
-        location: location?.trim() || null,
-        deviceType: deviceType?.trim() || null,
-        firmwareVersion: firmwareVersion?.trim() || null,
-        updatedAt: new Date(),
+        status: status || 'active',
       },
     });
 
@@ -169,23 +149,7 @@ export async function DELETE(request: NextRequest) {
       );
     }
 
-    // Check if device is assigned to any product
-    const product = await prisma.product.findFirst({
-      where: {
-        einkDeviceId: (await prisma.deviceStatus.findUnique({
-          where: { id: parseInt(deviceId) },
-        }))?.deviceId,
-      },
-    });
-
-    if (product) {
-      return NextResponse.json(
-        { error: 'Cannot delete device assigned to a product. Please unassign it first.' },
-        { status: 400 }
-      );
-    }
-
-    await prisma.deviceStatus.delete({
+    await prisma.device.delete({
       where: { id: parseInt(deviceId) },
     });
 
