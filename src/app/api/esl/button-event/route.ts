@@ -160,10 +160,8 @@ export async function POST(request: NextRequest) {
 
     if (!systemUser) {
       console.error(`[ESL Webhook] No user found for manager_id ${product.manager_id}`);
-      return NextResponse.json(
-        { status: 'error', message: 'No user found for this manager' },
-        { status: 500 }
-      );
+      // Return 200 to prevent Minew from retrying
+      return NextResponse.json({ status: 'error', message: 'No user found for this manager' });
     }
     requestedById = systemUser.id;
 
@@ -189,13 +187,7 @@ export async function POST(request: NextRequest) {
       },
     });
 
-    console.log(`[ESL Webhook] ✅ Replenishment request created successfully:`);
-    console.log(`   Request ID  : ${newRequest.id}`);
-    console.log(`   Product     : ${newRequest.product.name}`);
-    console.log(`   Quantity    : ${requestedQty}`);
-    console.log(`   Priority    : ${priority}`);
-    console.log(`   Location    : ${product.location}`);
-    console.log('=================================================');
+    
 
     return NextResponse.json({
       status: 'success',

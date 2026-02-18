@@ -101,31 +101,22 @@ export async function POST(request: NextRequest) {
 
 /**
  * Import locally registered devices to Minew ESL Cloud
+ * Uses products with einkDeviceId set as the source of ESL device MACs.
  */
 async function importLocalDevicesToMinew(managerId: number, storeId: string) {
   const results: SyncResult[] = [];
 
-  // Get all local devices for this manager
-  const localDevices = await prisma.deviceStatus.findMany({
-    where: { manager_id: managerId },
+  // Use products with einkDeviceId as the source of ESL device MACs
+  const eslProducts = await prisma.product.findMany({
+    where: {
+      manager_id: managerId,
+      hasEinkDevice: 1,
+      einkDeviceId: { not: null },
+    },
+    select: { einkDeviceId: true },
   });
 
-  if (localDevices.length === 0) {
-    return NextResponse.json({
-      success: true,
-      message: 'No local devices to import',
-      results: [],
-    });
-  }
-
-  // Filter for E-ink/ESL devices
-  const eslDevices = localDevices.filter(d => 
-    d.deviceType.toLowerCase().includes('eink') ||
-    d.deviceType.toLowerCase().includes('esl') ||
-    d.deviceType.toLowerCase().includes('e-ink')
-  );
-
-  if (eslDevices.length === 0) {
+  if (eslProducts.length === 0) {
     return NextResponse.json({
       success: true,
       message: 'No ESL devices to import',
@@ -134,16 +125,15 @@ async function importLocalDevicesToMinew(managerId: number, storeId: string) {
   }
 
   // Extract MAC addresses
-  const macAddresses = eslDevices.map(d => 
-    d.deviceId.replace(/[:-]/g, '').toLowerCase()
-  );
+  const macAddresses = eslProducts
+    .map(p => p.einkDeviceId!.replace(/[:-]/g, '').toLowerCase())
+    .filter(Boolean);
 
   // Import to Minew
   const importResult = await importESLTags(storeId, macAddresses);
 
   // Process results
-  for (const device of eslDevices) {
-    const mac = device.deviceId.replace(/[:-]/g, '').toLowerCase();
+  for (const mac of macAddresses) {
     const result: SyncResult = {
       mac,
       imported: false,
@@ -172,94 +162,26 @@ async function importLocalDevicesToMinew(managerId: number, storeId: string) {
 }
 
 /**
- * Sync device status from Minew to local database
- * This function now creates missing devices in addition to updating existing ones
+ * Sync device status from Minew cloud (read-only, no local device_status table)
  */
 async function syncFromMinew(managerId: number, storeId: string) {
-  // Get all ESL tags from Minew
+  // Fetch tags from Minew Cloud and return their live status.
+  // Device status is not persisted locally — it is always read from Minew Cloud.
   const minewTags = await listESLTags(storeId, { size: 1000 });
 
-  let updated = 0;
-  let created = 0;
-  let failed = 0;
-  const errors: string[] = [];
-
-  for (const tag of minewTags.items) {
-    const mac = tag.mac.toLowerCase();
-
-    try {
-      // Try to find matching local device by exact MAC or partial match
-      let localDevice = await prisma.deviceStatus.findFirst({
-        where: {
-          manager_id: managerId,
-          deviceId: mac,
-        },
-      });
-
-      // If not found by exact match, try partial match (last 6 chars)
-      if (!localDevice) {
-        localDevice = await prisma.deviceStatus.findFirst({
-          where: {
-            manager_id: managerId,
-            deviceId: {
-              contains: mac.slice(-6),
-            },
-          },
-        });
-      }
-
-      const deviceData = {
-        deviceType: tag.screenSize ? `E-ink ${tag.screenSize}"` : 'E-ink ESL',
-        deviceName: `ESL-${mac.slice(-6).toUpperCase()}`,
-        batteryLevel: tag.battery,
-        isOnline: tag.isOnline === '2' ? 1 : 0,
-        lastSyncAt: new Date(),
-        currentDisplay: tag.goodsId || null,
-        minewStoreId: storeId,
-        minewSynced: 1,
-        minewBound: tag.bind === '1' ? 1 : 0,
-        minewGoodsId: tag.goodsId || null,
-        minewTemplateId: tag.demoId || null,
-        screenSize: tag.screenSize || null,
-        screenColor: tag.screenInfo?.color || null,
-        updatedAt: new Date(),
-      };
-
-      if (localDevice) {
-        // Update existing device
-        await prisma.deviceStatus.update({
-          where: { id: localDevice.id },
-          data: deviceData,
-        });
-        updated++;
-      } else {
-        // Create new device in local database
-        await prisma.deviceStatus.create({
-          data: {
-            manager_id: managerId,
-            deviceId: mac,
-            ...deviceData,
-            createdAt: new Date(),
-          },
-        });
-        created++;
-      }
-    } catch (error) {
-      failed++;
-      const errorMsg = `Failed to sync ${mac}: ${error instanceof Error ? error.message : 'Unknown error'}`;
-      console.error(errorMsg);
-      errors.push(errorMsg);
-    }
-  }
+  const tags = minewTags.items.map((tag: any) => ({
+    mac: tag.mac,
+    isOnline: tag.isOnline === '2',
+    battery: tag.battery,
+    bound: tag.bind === '1',
+    goodsId: tag.goodsId || null,
+  }));
 
   return NextResponse.json({
     success: true,
-    message: `Synced ${updated} devices, created ${created} new devices, ${failed} failed`,
+    message: `Fetched ${tags.length} devices from Minew Cloud`,
     minewDevices: minewTags.total,
-    updated,
-    created,
-    failed,
-    errors: errors.length > 0 ? errors : undefined,
+    tags,
   });
 }
 

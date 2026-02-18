@@ -98,37 +98,16 @@ export async function POST(request: NextRequest) {
       }
 
       case 'delete': {
-        // Delete devices from Minew cloud and local database
+        // Delete devices from Minew cloud
         const minewSuccess = await deleteESLTags(storeId, macAddresses);
 
-        if (minewSuccess) {
-          // Also delete from local database
-          for (const mac of macAddresses) {
-            try {
-              await prisma.deviceStatus.deleteMany({
-                where: {
-                  manager_id: parseInt(manager_id),
-                  deviceId: mac.toLowerCase(),
-                },
-              });
-              results[mac] = { success: true };
-            } catch (error) {
-              results[mac] = {
-                success: false,
-                error: 'Deleted from Minew but failed to delete from local database',
-              };
-            }
-          }
-        } else {
-          macAddresses.forEach(mac => {
-            results[mac] = { success: false, error: 'Delete failed' };
-          });
-        }
+        macAddresses.forEach(mac => {
+          results[mac] = minewSuccess ? { success: true } : { success: false, error: 'Delete failed' };
+        });
         break;
       }
 
       case 'bind': {
-        // Bind devices to products
         if (!bindingData || !Array.isArray(bindingData)) {
           return NextResponse.json(
             { error: 'bindingData array is required for bind operation' },
@@ -138,67 +117,24 @@ export async function POST(request: NextRequest) {
 
         const bindResult = await batchBindESLTags(storeId, bindingData);
         if (bindResult.success) {
-          // Update local database
-          for (const binding of bindingData) {
-            try {
-              await prisma.deviceStatus.updateMany({
-                where: {
-                  manager_id: parseInt(manager_id),
-                  deviceId: binding.labelMac.toLowerCase(),
-                },
-                data: {
-                  minewBound: 1,
-                  minewGoodsId: binding.goodsId,
-                  updatedAt: new Date(),
-                },
-              });
-              results[binding.labelMac] = { success: true };
-            } catch (error) {
-              results[binding.labelMac] = {
-                success: false,
-                error: 'Bound in Minew but failed to update local database',
-              };
-            }
-          }
+          bindingData.forEach(binding => {
+            results[binding.labelMac] = { success: true };
+          });
         } else {
           bindingData.forEach(binding => {
-            results[binding.labelMac] = {
-              success: false,
-              error: bindResult.error || 'Bind failed',
-            };
+            results[binding.labelMac] = { success: false, error: bindResult.error || 'Bind failed' };
           });
         }
         break;
       }
 
       case 'unbind': {
-        // Unbind devices from products
         for (const mac of macAddresses) {
           try {
             const success = await unbindESLTag(storeId, mac);
-            if (success) {
-              // Update local database
-              await prisma.deviceStatus.updateMany({
-                where: {
-                  manager_id: parseInt(manager_id),
-                  deviceId: mac.toLowerCase(),
-                },
-                data: {
-                  minewBound: 0,
-                  minewGoodsId: null,
-                  currentDisplay: null,
-                  updatedAt: new Date(),
-                },
-              });
-              results[mac] = { success: true };
-            } else {
-              results[mac] = { success: false, error: 'Unbind failed' };
-            }
+            results[mac] = success ? { success: true } : { success: false, error: 'Unbind failed' };
           } catch (error) {
-            results[mac] = {
-              success: false,
-              error: error instanceof Error ? error.message : 'Unknown error',
-            };
+            results[mac] = { success: false, error: error instanceof Error ? error.message : 'Unknown error' };
           }
         }
         break;
