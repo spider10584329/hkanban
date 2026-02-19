@@ -3,7 +3,7 @@
 -- https://www.phpmyadmin.net/
 --
 -- Host: 127.0.0.1
--- Generation Time: Jan 23, 2026 at 06:10 PM
+-- Generation Time: Feb 19, 2026 at 01:33 AM
 -- Server version: 10.4.32-MariaDB
 -- PHP Version: 8.0.30
 
@@ -18,7 +18,7 @@ SET time_zone = "+00:00";
 /*!40101 SET NAMES utf8mb4 */;
 
 --
--- Database: `kanban`
+-- Database: `hkanban`
 --
 
 -- --------------------------------------------------------
@@ -32,14 +32,15 @@ CREATE TABLE `apikey` (
   `manager_id` int(11) NOT NULL,
   `api_key` varchar(255) NOT NULL,
   `created_at` varchar(255) NOT NULL
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 --
 -- Dumping data for table `apikey`
 --
 
 INSERT INTO `apikey` (`id`, `manager_id`, `api_key`, `created_at`) VALUES
-(4, 25, '936840be-a60f0546-21476597-22a3db77-1f2479af-569eb470-88c45dc0-f03efb96', '2026-01-22T12:23:05.471Z');
+(1, 25, '8719a0ba-57374a9b-d3baed55-df6dca58-9a29cfa2-e9de315d-be36991b-d01a4603', '2026-01-24T22:10:22.064Z'),
+(2, 25, 'cd4df245-148b0359-8186f23f-31219519-0c09f6f9-303e8661-d89b19ac-22640486', '2026-01-24T22:10:22.069Z');
 
 -- --------------------------------------------------------
 
@@ -62,39 +63,123 @@ CREATE TABLE `categories` (
 --
 
 INSERT INTO `categories` (`id`, `manager_id`, `name`, `description`, `icon`, `createdAt`, `updatedAt`) VALUES
-(1, 25, 'DSFDS', 'SADASDADSASD', NULL, '2026-01-20 13:53:55.464', '2026-01-20 13:53:55.463');
+(1, 25, 'Appearal', NULL, NULL, '2026-02-03 18:44:34.992', '2026-02-03 18:44:34.987');
 
 -- --------------------------------------------------------
 
 --
--- Table structure for table `device_status`
+-- Table structure for table `device`
 --
 
-CREATE TABLE `device_status` (
+CREATE TABLE `device` (
   `id` int(11) NOT NULL,
   `manager_id` int(11) NOT NULL,
-  `deviceId` varchar(100) NOT NULL,
-  `deviceType` varchar(50) NOT NULL,
-  `deviceName` varchar(255) DEFAULT NULL,
-  `firmwareVersion` varchar(50) DEFAULT NULL,
-  `batteryLevel` int(11) DEFAULT NULL,
-  `isOnline` tinyint(4) NOT NULL DEFAULT 1,
-  `lastSyncAt` datetime(3) DEFAULT NULL,
-  `lastButtonPress` datetime(3) DEFAULT NULL,
-  `currentDisplay` varchar(100) DEFAULT NULL,
-  `displayMessage` text DEFAULT NULL,
-  `location` varchar(255) DEFAULT NULL,
-  `installationDate` datetime(3) DEFAULT NULL,
+  `mac_address` varchar(255) NOT NULL,
+  `status` varchar(255) NOT NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+--
+-- Dumping data for table `device`
+--
+
+INSERT INTO `device` (`id`, `manager_id`, `mac_address`, `status`) VALUES
+(7, 25, 'e10000031cb5', 'active'),
+(8, 25, 'e10000031c76', 'active');
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `gateway`
+--
+
+CREATE TABLE `gateway` (
+  `id` int(11) NOT NULL,
+  `name` varchar(255) NOT NULL,
+  `mac_address` varchar(20) NOT NULL,
+  `manager_id` int(11) NOT NULL,
+  `created_at` datetime(3) NOT NULL DEFAULT current_timestamp(3)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+--
+-- Dumping data for table `gateway`
+--
+
+INSERT INTO `gateway` (`id`, `name`, `mac_address`, `manager_id`, `created_at`) VALUES
+(15, 'Gergory', 'AC233FC23A64', 25, '2026-01-31 03:33:22.503');
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `minew_config`
+--
+
+CREATE TABLE `minew_config` (
+  `id` int(11) NOT NULL,
+  `configKey` varchar(255) NOT NULL,
+  `configValue` text NOT NULL,
+  `description` text DEFAULT NULL,
   `createdAt` datetime(3) NOT NULL DEFAULT current_timestamp(3),
   `updatedAt` datetime(3) NOT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 --
--- Dumping data for table `device_status`
+-- Dumping data for table `minew_config`
 --
 
-INSERT INTO `device_status` (`id`, `manager_id`, `deviceId`, `deviceType`, `deviceName`, `firmwareVersion`, `batteryLevel`, `isOnline`, `lastSyncAt`, `lastButtonPress`, `currentDisplay`, `displayMessage`, `location`, `installationDate`, `createdAt`, `updatedAt`) VALUES
-(4, 25, 'AC233FC0001', 'E-ink 2.13', 'Room 201', NULL, NULL, 0, NULL, NULL, NULL, NULL, 'floor 2', '2026-01-21 09:01:39.343', '2026-01-21 09:01:39.345', '2026-01-21 09:01:39.343');
+INSERT INTO `minew_config` (`id`, `configKey`, `configValue`, `description`, `createdAt`, `updatedAt`) VALUES
+(1, 'default_store_id', '2015980079456194560', 'Default Minew store ID for all products', '2026-02-13 04:12:36.131', '2026-02-13 04:12:36.131');
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `minew_sync_queue`
+--
+
+CREATE TABLE `minew_sync_queue` (
+  `id` int(11) NOT NULL,
+  `entityType` varchar(50) NOT NULL,
+  `entityId` int(11) NOT NULL,
+  `operation` varchar(50) NOT NULL,
+  `payload` text NOT NULL,
+  `retryCount` int(11) NOT NULL DEFAULT 0,
+  `maxRetries` int(11) NOT NULL DEFAULT 3,
+  `lastError` text DEFAULT NULL,
+  `status` varchar(50) NOT NULL DEFAULT 'pending',
+  `scheduledAt` datetime(3) NOT NULL,
+  `processedAt` datetime(3) DEFAULT NULL,
+  `createdAt` datetime(3) NOT NULL DEFAULT current_timestamp(3),
+  `updatedAt` datetime(3) NOT NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+--
+-- Dumping data for table `minew_sync_queue`
+--
+
+INSERT INTO `minew_sync_queue` (`id`, `entityType`, `entityId`, `operation`, `payload`, `retryCount`, `maxRetries`, `lastError`, `status`, `scheduledAt`, `processedAt`, `createdAt`, `updatedAt`) VALUES
+(1, 'product', 11, 'create', '{\"id\":\"11\",\"name\":\"aaaa\",\"price\":\"300\"}', 0, 3, NULL, 'pending', '2026-02-13 04:04:27.972', NULL, '2026-02-13 04:04:27.973', '2026-02-13 04:04:27.973');
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `minew_token_cache`
+--
+
+CREATE TABLE `minew_token_cache` (
+  `id` int(11) NOT NULL,
+  `token` text NOT NULL,
+  `expiresAt` datetime(3) NOT NULL,
+  `lastRefreshedAt` datetime(3) NOT NULL,
+  `username` varchar(255) NOT NULL,
+  `createdAt` datetime(3) NOT NULL DEFAULT current_timestamp(3),
+  `updatedAt` datetime(3) NOT NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+--
+-- Dumping data for table `minew_token_cache`
+--
+
+INSERT INTO `minew_token_cache` (`id`, `token`, `expiresAt`, `lastRefreshedAt`, `username`, `createdAt`, `updatedAt`) VALUES
+(224, 'eyJhbGciOiJSUzUxMiJ9.eyJzdWIiOiIyMDE1OTY4OTc3MDgzMTc0OTEyIiwiZXhwIjoxNzcxNTI2NzU4fQ.JIdRMTSlYWdjj4InkVGLD38LdtmTcIpxM5CBRPlTbAVz39JhktBzqH2anUVUxep2W9Oed0LO803stiAOOHiAZ2p-x0N3y938Gc1Wa_u5j-bAdosDXC_OehiQyBrZOczFjn5wKKJQ89gv3CPzwtzlFDNreh0MHyj80WMyDDKXCRc', '2026-02-19 17:45:57.596', '2026-02-18 18:45:57.597', 'SQUARE', '2026-02-18 18:45:57.598', '2026-02-18 18:45:57.598');
 
 -- --------------------------------------------------------
 
@@ -121,14 +206,6 @@ CREATE TABLE `orders` (
   `updatedAt` datetime(3) NOT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
---
--- Dumping data for table `orders`
---
-
-INSERT INTO `orders` (`id`, `manager_id`, `orderNumber`, `supplierId`, `status`, `orderDate`, `expectedDelivery`, `actualDelivery`, `trackingNumber`, `trackingUrl`, `receivedById`, `receivedAt`, `receiptNotes`, `totalAmount`, `createdAt`, `updatedAt`) VALUES
-(1, 25, 'ORD-00001', 1, 'DELIVERED', '2026-01-21 09:31:07.083', '2026-01-21 00:00:00.000', '2026-01-21 09:31:33.545', NULL, NULL, 1, '2026-01-21 09:31:33.545', NULL, 0.00, '2026-01-21 09:31:07.083', '2026-01-21 09:31:33.545'),
-(2, 25, 'ORD-00002', 1, 'DELIVERED', '2026-01-21 09:41:04.094', '2026-01-21 00:00:00.000', '2026-01-21 09:42:09.000', NULL, NULL, 1, '2026-01-21 09:42:09.000', NULL, 0.00, '2026-01-21 09:41:04.094', '2026-01-21 09:42:09.000');
-
 -- --------------------------------------------------------
 
 --
@@ -151,14 +228,6 @@ CREATE TABLE `order_items` (
   `updatedAt` datetime(3) NOT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
---
--- Dumping data for table `order_items`
---
-
-INSERT INTO `order_items` (`id`, `manager_id`, `orderId`, `productId`, `replenishmentRequestId`, `quantity`, `unitPrice`, `totalPrice`, `receivedQuantity`, `damageQuantity`, `notes`, `createdAt`, `updatedAt`) VALUES
-(1, 25, 1, 3, 4, 5, 0.00, 0.00, NULL, NULL, NULL, '2026-01-21 09:31:07.092', '2026-01-21 09:31:07.067'),
-(2, 25, 2, 3, 5, 10, 0.00, 0.00, NULL, NULL, NULL, '2026-01-21 09:41:04.097', '2026-01-21 09:41:04.091');
-
 -- --------------------------------------------------------
 
 --
@@ -174,7 +243,6 @@ CREATE TABLE `products` (
   `categoryId` int(11) NOT NULL,
   `supplierId` int(11) DEFAULT NULL,
   `location` varchar(255) NOT NULL,
-  `storageRequirements` text DEFAULT NULL,
   `reorderThreshold` int(11) DEFAULT NULL,
   `standardOrderQty` int(11) DEFAULT NULL,
   `unitPrice` decimal(10,2) DEFAULT NULL,
@@ -183,17 +251,24 @@ CREATE TABLE `products` (
   `einkDeviceId` varchar(100) DEFAULT NULL,
   `hasEinkDevice` tinyint(4) NOT NULL DEFAULT 0,
   `isActive` tinyint(4) NOT NULL DEFAULT 1,
-  `createdById` int(11) NOT NULL,
+  `createdById` int(11) DEFAULT NULL,
   `createdAt` datetime(3) NOT NULL DEFAULT current_timestamp(3),
-  `updatedAt` datetime(3) NOT NULL
+  `updatedAt` datetime(3) NOT NULL,
+  `minewSynced` tinyint(4) NOT NULL DEFAULT 0 COMMENT 'Minew sync status: 0=not synced, 1=synced',
+  `minewSyncedAt` datetime(3) DEFAULT NULL,
+  `minewGoodsId` varchar(255) DEFAULT NULL COMMENT 'Minew cloud product ID',
+  `minewSyncError` text DEFAULT NULL COMMENT 'Last sync error message',
+  `minewBoundAt` datetime(3) DEFAULT NULL,
+  `minewBoundLabel` varchar(100) DEFAULT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 --
 -- Dumping data for table `products`
 --
 
-INSERT INTO `products` (`id`, `manager_id`, `name`, `description`, `sku`, `categoryId`, `supplierId`, `location`, `storageRequirements`, `reorderThreshold`, `standardOrderQty`, `unitPrice`, `qrCodeUrl`, `qrCodeImagePath`, `einkDeviceId`, `hasEinkDevice`, `isActive`, `createdById`, `createdAt`, `updatedAt`) VALUES
-(3, 25, 'ADADS', NULL, 'TWL-TL-001', 1, 1, 'floor 2', NULL, NULL, NULL, NULL, 'www-1234', NULL, 'AC233FC0001', 1, 1, 1, '2026-01-21 09:02:38.646', '2026-01-21 09:02:38.644');
+INSERT INTO `products` (`id`, `manager_id`, `name`, `description`, `sku`, `categoryId`, `supplierId`, `location`, `reorderThreshold`, `standardOrderQty`, `unitPrice`, `qrCodeUrl`, `qrCodeImagePath`, `einkDeviceId`, `hasEinkDevice`, `isActive`, `createdById`, `createdAt`, `updatedAt`, `minewSynced`, `minewSyncedAt`, `minewGoodsId`, `minewSyncError`, `minewBoundAt`, `minewBoundLabel`) VALUES
+(15, 25, 'Short shirt', 'for Gregory', 'TWL-QQQ_111', 1, 1, 'floor-3', 1, 100, 1000.00, '0x111111111', NULL, 'e10000031cb5', 1, 1, 1, '2026-02-14 03:07:21.532', '2026-02-14 03:07:23.739', 1, '2026-02-14 03:07:23.739', '15', NULL, '2026-02-14 03:08:16.461', 'e10000031cb5'),
+(16, 25, 'Towel', 'linen', 'TWL-QQQ_222', 1, 1, 'floor-2', 2, 500, 100.00, '0x222222', NULL, 'e10000031c76', 1, 1, 1, '2026-02-14 03:14:51.685', '2026-02-14 03:14:54.752', 1, '2026-02-14 03:14:54.752', '16', NULL, '2026-02-14 03:16:33.479', 'e10000031c76');
 
 -- --------------------------------------------------------
 
@@ -220,16 +295,6 @@ CREATE TABLE `replenishment_requests` (
   `updatedAt` datetime(3) NOT NULL,
   `completedAt` datetime(3) DEFAULT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
-
---
--- Dumping data for table `replenishment_requests`
---
-
-INSERT INTO `replenishment_requests` (`id`, `manager_id`, `productId`, `requestedById`, `requestMethod`, `deviceInfo`, `requestedQty`, `location`, `notes`, `status`, `priority`, `approvedById`, `approvedAt`, `rejectionReason`, `createdAt`, `updatedAt`, `completedAt`) VALUES
-(3, 25, 3, 2, 'QR_SCAN', 'Mobile Scanner', 5, 'floor 2', NULL, 'COMPLETED', 'HIGH', 1, '2026-01-21 09:03:21.816', NULL, '2026-01-21 09:03:03.033', '2026-01-21 09:06:49.320', '2026-01-21 09:06:49.320'),
-(4, 25, 3, 2, 'QR_SCAN', 'Mobile Scanner', 5, 'floor 2', NULL, 'COMPLETED', 'NORMAL', 1, '2026-01-21 09:16:54.975', NULL, '2026-01-21 09:16:44.680', '2026-01-21 09:31:33.568', '2026-01-21 09:31:33.568'),
-(5, 25, 3, 2, 'QR_SCAN', 'Mobile Scanner', 10, 'floor 2', NULL, 'COMPLETED', 'HIGH', 1, '2026-01-21 09:40:01.098', NULL, '2026-01-21 09:39:12.057', '2026-01-21 09:42:09.016', '2026-01-21 09:42:09.016'),
-(6, 25, 3, 2, 'QR_SCAN', 'Mobile Scanner', 5, 'floor 2', NULL, 'PENDING', 'NORMAL', NULL, NULL, NULL, '2026-01-22 12:13:29.828', '2026-01-22 12:13:29.825', NULL);
 
 -- --------------------------------------------------------
 
@@ -274,7 +339,7 @@ CREATE TABLE `suppliers` (
 --
 
 INSERT INTO `suppliers` (`id`, `manager_id`, `name`, `contactName`, `phone`, `email`, `address`, `isActive`, `createdAt`, `updatedAt`) VALUES
-(1, 25, 'pp DEMI', 'milos micic', '+381 611182394', 'pjh@gmail.com', 'sdffds fdsfdsfdsf', 1, '2026-01-20 14:19:38.183', '2026-01-21 09:30:55.323');
+(1, 25, 'Alibaba', 'karan guptage', NULL, 'superadmin@facturexl.com', 'Samnatha Street, Tracy, CA, USA, 95391\nAndover Street, Lawrence, KS, USA, 66049', 1, '2026-02-03 18:45:17.274', '2026-02-03 18:45:17.272');
 
 -- --------------------------------------------------------
 
@@ -283,22 +348,21 @@ INSERT INTO `suppliers` (`id`, `manager_id`, `name`, `contactName`, `phone`, `em
 --
 
 CREATE TABLE `users` (
-  `id` int(20) NOT NULL,
+  `id` int(11) NOT NULL,
   `manager_id` int(11) NOT NULL,
   `username` varchar(255) NOT NULL,
   `password` varchar(255) NOT NULL,
   `isActive` tinyint(4) DEFAULT 0,
   `passwordRequest` varchar(255) DEFAULT NULL,
   `isPasswordRequest` tinyint(4) DEFAULT 0
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 --
 -- Dumping data for table `users`
 --
 
 INSERT INTO `users` (`id`, `manager_id`, `username`, `password`, `isActive`, `passwordRequest`, `isPasswordRequest`) VALUES
-(1, 25, 'pjh', '$pbkdf2-sha256$29000$sUqDowAB4CxQ3N0Tm/QMpGtypIXIVD67uzziyF2MpZo$O62vW02Io3orHVEiAsx.iJhk4PoDLH997ZnVr2XtRKE', 1, '0', 0),
-(2, 25, 'aaa', '$pbkdf2-sha256$29000$BACCBbOF2bblUmbtE/KhdGM3iOxARqEPn2adkVkPvQ0$6rxHJkGedKZVRwuvqaf4Gv1X59o5.LynKFZRH.iIFNA', 1, NULL, 0);
+(1, 25, 'spider', '$pbkdf2-sha256$29000$pRpSItipviERdpQ0na820X4XwNjHH.sM3UyBZ/bkv2w$.gTDlZeTSoK.BKBaiZzva/TKzDL5DcD7BIqiaIq16Xg', 1, NULL, 0);
 
 --
 -- Indexes for dumped tables
@@ -319,13 +383,42 @@ ALTER TABLE `categories`
   ADD KEY `categories_manager_id_name_idx` (`manager_id`,`name`);
 
 --
--- Indexes for table `device_status`
+-- Indexes for table `device`
 --
-ALTER TABLE `device_status`
+ALTER TABLE `device`
+  ADD PRIMARY KEY (`id`);
+
+--
+-- Indexes for table `gateway`
+--
+ALTER TABLE `gateway`
   ADD PRIMARY KEY (`id`),
-  ADD UNIQUE KEY `unique_manager_device` (`manager_id`,`deviceId`),
-  ADD KEY `device_status_manager_id_idx` (`manager_id`),
-  ADD KEY `device_status_manager_id_isOnline_idx` (`manager_id`,`isOnline`);
+  ADD UNIQUE KEY `unique_manager_mac` (`manager_id`,`mac_address`),
+  ADD KEY `gateway_manager_id_idx` (`manager_id`);
+
+--
+-- Indexes for table `minew_config`
+--
+ALTER TABLE `minew_config`
+  ADD PRIMARY KEY (`id`),
+  ADD UNIQUE KEY `minew_config_configKey_key` (`configKey`),
+  ADD KEY `minew_config_configKey_idx` (`configKey`);
+
+--
+-- Indexes for table `minew_sync_queue`
+--
+ALTER TABLE `minew_sync_queue`
+  ADD PRIMARY KEY (`id`),
+  ADD KEY `minew_sync_queue_status_scheduledAt_idx` (`status`,`scheduledAt`),
+  ADD KEY `minew_sync_queue_entityType_entityId_idx` (`entityType`,`entityId`);
+
+--
+-- Indexes for table `minew_token_cache`
+--
+ALTER TABLE `minew_token_cache`
+  ADD PRIMARY KEY (`id`),
+  ADD KEY `minew_token_cache_expiresAt_idx` (`expiresAt`),
+  ADD KEY `minew_token_cache_username_idx` (`username`);
 
 --
 -- Indexes for table `orders`
@@ -334,10 +427,10 @@ ALTER TABLE `orders`
   ADD PRIMARY KEY (`id`),
   ADD UNIQUE KEY `unique_manager_ordernumber` (`manager_id`,`orderNumber`),
   ADD KEY `orders_manager_id_idx` (`manager_id`),
-  ADD KEY `orders_manager_id_status_idx` (`manager_id`,`status`),
   ADD KEY `orders_manager_id_orderDate_idx` (`manager_id`,`orderDate`),
-  ADD KEY `orders_supplierId_idx` (`supplierId`),
-  ADD KEY `orders_receivedById_idx` (`receivedById`);
+  ADD KEY `orders_manager_id_status_idx` (`manager_id`,`status`),
+  ADD KEY `orders_receivedById_idx` (`receivedById`),
+  ADD KEY `orders_supplierId_idx` (`supplierId`);
 
 --
 -- Indexes for table `order_items`
@@ -355,38 +448,38 @@ ALTER TABLE `order_items`
 --
 ALTER TABLE `products`
   ADD PRIMARY KEY (`id`),
-  ADD UNIQUE KEY `unique_manager_sku` (`manager_id`,`sku`),
-  ADD UNIQUE KEY `unique_manager_qrcode` (`manager_id`,`qrCodeUrl`),
   ADD UNIQUE KEY `unique_manager_eink` (`manager_id`,`einkDeviceId`),
-  ADD KEY `products_manager_id_idx` (`manager_id`),
-  ADD KEY `products_manager_id_categoryId_idx` (`manager_id`,`categoryId`),
-  ADD KEY `products_manager_id_supplierId_idx` (`manager_id`,`supplierId`),
-  ADD KEY `products_manager_id_isActive_idx` (`manager_id`,`isActive`),
-  ADD KEY `products_createdById_idx` (`createdById`),
+  ADD UNIQUE KEY `unique_manager_qrcode` (`manager_id`,`qrCodeUrl`),
+  ADD UNIQUE KEY `unique_manager_sku` (`manager_id`,`sku`),
   ADD KEY `products_categoryId_fkey` (`categoryId`),
-  ADD KEY `products_supplierId_fkey` (`supplierId`);
+  ADD KEY `products_manager_id_categoryId_idx` (`manager_id`,`categoryId`),
+  ADD KEY `products_manager_id_idx` (`manager_id`),
+  ADD KEY `products_manager_id_isActive_idx` (`manager_id`,`isActive`),
+  ADD KEY `products_manager_id_supplierId_idx` (`manager_id`,`supplierId`),
+  ADD KEY `products_supplierId_fkey` (`supplierId`),
+  ADD KEY `products_createdById_idx` (`createdById`);
 
 --
 -- Indexes for table `replenishment_requests`
 --
 ALTER TABLE `replenishment_requests`
   ADD PRIMARY KEY (`id`),
-  ADD KEY `replenishment_requests_manager_id_idx` (`manager_id`),
-  ADD KEY `replenishment_requests_manager_id_status_idx` (`manager_id`,`status`),
-  ADD KEY `replenishment_requests_manager_id_productId_idx` (`manager_id`,`productId`),
+  ADD KEY `replenishment_requests_approvedById_idx` (`approvedById`),
   ADD KEY `replenishment_requests_manager_id_createdAt_idx` (`manager_id`,`createdAt`),
+  ADD KEY `replenishment_requests_manager_id_idx` (`manager_id`),
+  ADD KEY `replenishment_requests_manager_id_productId_idx` (`manager_id`,`productId`),
+  ADD KEY `replenishment_requests_manager_id_status_idx` (`manager_id`,`status`),
   ADD KEY `replenishment_requests_productId_idx` (`productId`),
-  ADD KEY `replenishment_requests_requestedById_idx` (`requestedById`),
-  ADD KEY `replenishment_requests_approvedById_idx` (`approvedById`);
+  ADD KEY `replenishment_requests_requestedById_idx` (`requestedById`);
 
 --
 -- Indexes for table `stock_history`
 --
 ALTER TABLE `stock_history`
   ADD PRIMARY KEY (`id`),
+  ADD KEY `stock_history_manager_id_eventType_idx` (`manager_id`,`eventType`),
   ADD KEY `stock_history_manager_id_idx` (`manager_id`),
   ADD KEY `stock_history_manager_id_productId_idx` (`manager_id`,`productId`),
-  ADD KEY `stock_history_manager_id_eventType_idx` (`manager_id`,`eventType`),
   ADD KEY `stock_history_manager_id_timestamp_idx` (`manager_id`,`timestamp`),
   ADD KEY `stock_history_productId_idx` (`productId`);
 
@@ -413,7 +506,7 @@ ALTER TABLE `users`
 -- AUTO_INCREMENT for table `apikey`
 --
 ALTER TABLE `apikey`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=5;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=3;
 
 --
 -- AUTO_INCREMENT for table `categories`
@@ -422,34 +515,58 @@ ALTER TABLE `categories`
   MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=2;
 
 --
--- AUTO_INCREMENT for table `device_status`
+-- AUTO_INCREMENT for table `device`
 --
-ALTER TABLE `device_status`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=5;
+ALTER TABLE `device`
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=9;
+
+--
+-- AUTO_INCREMENT for table `gateway`
+--
+ALTER TABLE `gateway`
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=17;
+
+--
+-- AUTO_INCREMENT for table `minew_config`
+--
+ALTER TABLE `minew_config`
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=2;
+
+--
+-- AUTO_INCREMENT for table `minew_sync_queue`
+--
+ALTER TABLE `minew_sync_queue`
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=2;
+
+--
+-- AUTO_INCREMENT for table `minew_token_cache`
+--
+ALTER TABLE `minew_token_cache`
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=225;
 
 --
 -- AUTO_INCREMENT for table `orders`
 --
 ALTER TABLE `orders`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=3;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT;
 
 --
 -- AUTO_INCREMENT for table `order_items`
 --
 ALTER TABLE `order_items`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=3;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT;
 
 --
 -- AUTO_INCREMENT for table `products`
 --
 ALTER TABLE `products`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=4;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=17;
 
 --
 -- AUTO_INCREMENT for table `replenishment_requests`
 --
 ALTER TABLE `replenishment_requests`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=7;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=2;
 
 --
 -- AUTO_INCREMENT for table `stock_history`
@@ -467,7 +584,7 @@ ALTER TABLE `suppliers`
 -- AUTO_INCREMENT for table `users`
 --
 ALTER TABLE `users`
-  MODIFY `id` int(20) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=3;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=2;
 
 --
 -- Constraints for dumped tables
@@ -493,7 +610,7 @@ ALTER TABLE `order_items`
 --
 ALTER TABLE `products`
   ADD CONSTRAINT `products_categoryId_fkey` FOREIGN KEY (`categoryId`) REFERENCES `categories` (`id`) ON UPDATE CASCADE,
-  ADD CONSTRAINT `products_createdById_fkey` FOREIGN KEY (`createdById`) REFERENCES `users` (`id`) ON UPDATE CASCADE,
+  ADD CONSTRAINT `products_createdById_fkey` FOREIGN KEY (`createdById`) REFERENCES `users` (`id`) ON DELETE SET NULL ON UPDATE CASCADE,
   ADD CONSTRAINT `products_supplierId_fkey` FOREIGN KEY (`supplierId`) REFERENCES `suppliers` (`id`) ON DELETE SET NULL ON UPDATE CASCADE;
 
 --
