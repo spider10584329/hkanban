@@ -3,6 +3,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { Html5Qrcode } from 'html5-qrcode';
 import { useToast } from '@/components/ui/ToastProvider';
+import { CustomSelect } from '@/components/ui/CustomSelect';
 
 interface Product {
   id: number;
@@ -460,15 +461,18 @@ export default function ScanPage() {
 
             <div>
               <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-1 sm:mb-2">Priority</label>
-              <select
+              <CustomSelect
                 value={manualPriority}
-                onChange={(e) => setManualPriority(e.target.value as 'NORMAL' | 'HIGH' | 'URGENT')}
-                className="w-full px-3 sm:px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-gray-500 text-sm sm:text-base"
-              >
-                <option value="NORMAL">Normal</option>
-                <option value="HIGH">High</option>
-                <option value="URGENT">Urgent</option>
-              </select>
+                onChange={(v) => setManualPriority(v as 'NORMAL' | 'HIGH' | 'URGENT')}
+                options={[
+                  { value: 'NORMAL', label: 'Normal' },
+                  { value: 'HIGH', label: 'High' },
+                  { value: 'URGENT', label: 'Urgent' },
+                ]}
+                placeholder="Select Priority"
+                searchable={false}
+                clearable={false}
+              />
             </div>
 
             <div>

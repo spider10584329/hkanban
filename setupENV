@@ -10,4 +10,4 @@ PULSEPOINT_PROJECT_ID=22
 MINEW_API_BASE=https://cloud.minewesl.com
 MINEW_USERNAME=SQUARE
 MINEW_PASSWORD=Minew123456
-MINEW_ESL_BUTTON_EVENT_URL=https://yourdomain.com/api/esl/button-event
+MINEW_ESL_BUTTON_EVENT_URL=https://app.hkanan.com/api/esl/button-event

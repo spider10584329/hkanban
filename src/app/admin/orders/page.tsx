@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { CustomSelect } from '@/components/ui/CustomSelect';
 
 interface OrderItem {
   id: number;
@@ -427,30 +428,27 @@ export default function OrdersPage() {
             className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-gray-500 text-sm"
           />
           <div className="flex flex-col sm:flex-row gap-3">
-            <select
+            <CustomSelect
               value={statusFilter}
-              onChange={(e) => setStatusFilter(e.target.value)}
-              className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-gray-500 text-sm"
-            >
-              <option value="">All Status</option>
-              <option value="PENDING">Pending</option>
-              <option value="SENT">Sent</option>
-              <option value="IN_TRANSIT">In Transit</option>
-              <option value="DELIVERED">Delivered</option>
-              <option value="CANCELLED">Cancelled</option>
-            </select>
-            <select
+              onChange={setStatusFilter}
+              options={[
+                { value: 'PENDING', label: 'Pending' },
+                { value: 'SENT', label: 'Sent' },
+                { value: 'IN_TRANSIT', label: 'In Transit' },
+                { value: 'DELIVERED', label: 'Delivered' },
+                { value: 'CANCELLED', label: 'Cancelled' },
+              ]}
+              placeholder="All Status"
+              searchable={false}
+              className="flex-1"
+            />
+            <CustomSelect
               value={supplierFilter}
-              onChange={(e) => setSupplierFilter(e.target.value)}
-              className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-gray-500 text-sm"
-            >
-              <option value="">All Suppliers</option>
-              {suppliers.map((supplier) => (
-                <option key={supplier.id} value={supplier.id}>
-                  {supplier.name}
-                </option>
-              ))}
-            </select>
+              onChange={setSupplierFilter}
+              options={suppliers.map((s) => ({ value: String(s.id), label: s.name }))}
+              placeholder="All Suppliers"
+              className="flex-1"
+            />
           </div>
         </div>
         <div className="overflow-x-auto">
@@ -573,21 +571,16 @@ export default function OrdersPage() {
                     <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-1">
                       Select Supplier <span className="text-red-500">*</span>
                     </label>
-                    <select
+                    <CustomSelect
                       value={selectedSupplier}
-                      onChange={(e) => {
-                        setSelectedSupplier(e.target.value);
+                      onChange={(v) => {
+                        setSelectedSupplier(v);
                         setSelectedRequests([]);
                       }}
-                      className="w-full rounded-lg border border-gray-300 px-3 py-2 focus:border-gray-500 focus:outline-none text-sm"
-                    >
-                      <option value="">Select a supplier</option>
-                      {suppliers.map((supplier) => (
-                        <option key={supplier.id} value={supplier.id}>
-                          {supplier.name}
-                        </option>
-                      ))}
-                    </select>
+                      options={suppliers.map((s) => ({ value: String(s.id), label: s.name }))}
+                      placeholder="Select a supplier"
+                      clearable={false}
+                    />
                   </div>
 
                   <div>

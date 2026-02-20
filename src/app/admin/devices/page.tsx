@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { useNotification } from '@/hooks/useNotification';
+import { CustomSelect } from '@/components/ui/CustomSelect';
 
 interface Device {
   id: number;
@@ -1091,25 +1092,23 @@ export default function DevicesPage() {
               <label htmlFor="template-store-select" className="text-sm font-medium text-gray-700">
                 Select Store:
               </label>
-              <select
+              <CustomSelect
                 id="template-store-select"
                 value={selectedStoreId}
-                onChange={(e) => {
-                  const newStoreId = e.target.value;
+                onChange={(newStoreId) => {
                   setSelectedStoreId(newStoreId);
                   if (newStoreId) {
                     fetchTemplates(newStoreId);
                   }
                 }}
-                className="flex-1 max-w-md px-4 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-              >
-                <option value="">-- Select a store --</option>
-                {minewStores.map((store) => (
-                  <option key={store.storeId} value={store.storeId}>
-                    {store.name} ({store.storeId})
-                  </option>
-                ))}
-              </select>
+                options={minewStores.map((store) => ({
+                  value: store.storeId,
+                  label: `${store.name} (${store.storeId})`,
+                }))}
+                placeholder="-- Select a store --"
+                clearable={false}
+                className="flex-1 max-w-md"
+              />
               {selectedStoreId && (
                 <button
                   onClick={() => fetchTemplates(selectedStoreId)}
@@ -1237,25 +1236,23 @@ export default function DevicesPage() {
               <label htmlFor="gateway-store-select" className="text-sm font-medium text-gray-700">
                 Select Store:
               </label>
-              <select
+              <CustomSelect
                 id="gateway-store-select"
                 value={selectedStoreId}
-                onChange={(e) => {
-                  const newStoreId = e.target.value;
+                onChange={(newStoreId) => {
                   setSelectedStoreId(newStoreId);
                   if (newStoreId) {
                     fetchMinewGateways(newStoreId);
                   }
                 }}
-                className="flex-1 max-w-md px-4 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-              >
-                <option value="">-- Select a store --</option>
-                {minewStores.map((store) => (
-                  <option key={store.storeId} value={store.storeId}>
-                    {store.name} ({store.storeId})
-                  </option>
-                ))}
-              </select>
+                options={minewStores.map((store) => ({
+                  value: store.storeId,
+                  label: `${store.name} (${store.storeId})`,
+                }))}
+                placeholder="-- Select a store --"
+                clearable={false}
+                className="flex-1 max-w-md"
+              />
               {selectedStoreId && (
                 <button
                   onClick={() => {
@@ -1433,25 +1430,23 @@ export default function DevicesPage() {
               <label htmlFor="esl-store-select" className="text-sm font-medium text-gray-700">
                 Select Store:
               </label>
-              <select
+              <CustomSelect
                 id="esl-store-select"
                 value={selectedStoreId}
-                onChange={(e) => {
-                  const newStoreId = e.target.value;
+                onChange={(newStoreId) => {
                   setSelectedStoreId(newStoreId);
                   if (newStoreId) {
                     fetchESLTags(newStoreId);
                   }
                 }}
-                className="flex-1 max-w-md px-4 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-              >
-                <option value="">-- Select a store --</option>
-                {minewStores.map((store) => (
-                  <option key={store.storeId} value={store.storeId}>
-                    {store.name} ({store.storeId})
-                  </option>
-                ))}
-              </select>
+                options={minewStores.map((store) => ({
+                  value: store.storeId,
+                  label: `${store.name} (${store.storeId})`,
+                }))}
+                placeholder="-- Select a store --"
+                clearable={false}
+                className="flex-1 max-w-md"
+              />
               {selectedStoreId && (
                 <button
                   onClick={() => fetchESLTags(selectedStoreId)}
@@ -1695,18 +1690,22 @@ export default function DevicesPage() {
                           <label htmlFor="deviceType" className="block text-xs sm:text-sm font-medium text-gray-700">
                             Device Type
                           </label>
-                          <select
+                          <CustomSelect
                             id="deviceType"
                             value={formData.deviceType}
-                            onChange={(e) => setFormData({ ...formData, deviceType: e.target.value })}
-                            className="mt-1 block w-full rounded-lg border border-gray-300 px-3 py-2 shadow-sm focus:border-gray-500 focus:outline-none focus:ring-1 focus:ring-gray-500 text-sm"
-                          >
-                            <option value="E-ink Display">E-ink Display</option>
-                            <option value="E-ink 2.13">E-ink 2.13&quot;</option>
-                            <option value="E-ink 2.9">E-ink 2.9&quot;</option>
-                            <option value="E-ink 4.2">E-ink 4.2&quot;</option>
-                            <option value="E-ink 7.5">E-ink 7.5&quot;</option>
-                          </select>
+                            onChange={(v) => setFormData({ ...formData, deviceType: v })}
+                            options={[
+                              { value: 'E-ink Display', label: 'E-ink Display' },
+                              { value: 'E-ink 2.13', label: 'E-ink 2.13"' },
+                              { value: 'E-ink 2.9', label: 'E-ink 2.9"' },
+                              { value: 'E-ink 4.2', label: 'E-ink 4.2"' },
+                              { value: 'E-ink 7.5', label: 'E-ink 7.5"' },
+                            ]}
+                            placeholder="Select device type"
+                            searchable={false}
+                            clearable={false}
+                            className="mt-1"
+                          />
                         </div>
                         <div>
                           <label htmlFor="location" className="block text-xs sm:text-sm font-medium text-gray-700">

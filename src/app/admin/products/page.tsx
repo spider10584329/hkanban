@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { useNotification } from '@/hooks/useNotification';
+import { CustomSelect } from '@/components/ui/CustomSelect';
 
 interface Product {
   id: number;
@@ -727,28 +728,25 @@ export default function ProductsPage() {
             className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-gray-500 text-sm"
           />
           <div className="flex flex-col sm:flex-row gap-3">
-            <select
+            <CustomSelect
               value={categoryFilter}
-              onChange={(e) => setCategoryFilter(e.target.value)}
-              className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-gray-500 text-sm"
-            >
-              <option value="">All Categories</option>
-              {categories.map((category) => (
-                <option key={category.id} value={category.id}>
-                  {category.name}
-                </option>
-              ))}
-            </select>
-            <select
+              onChange={setCategoryFilter}
+              options={categories.map((c) => ({ value: String(c.id), label: c.name }))}
+              placeholder="All Categories"
+              className="flex-1"
+            />
+            <CustomSelect
               value={methodFilter}
-              onChange={(e) => setMethodFilter(e.target.value)}
-              className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-gray-500 text-sm"
-            >
-              <option value="">All Methods</option>
-              <option value="qr">QR Code Only</option>
-              <option value="eink">E-ink Only</option>
-              <option value="both">Both</option>
-            </select>
+              onChange={setMethodFilter}
+              options={[
+                { value: 'qr', label: 'QR Code Only' },
+                { value: 'eink', label: 'E-ink Only' },
+                { value: 'both', label: 'Both' },
+              ]}
+              placeholder="All Methods"
+              searchable={false}
+              className="flex-1"
+            />
           </div>
         </div>
         <div className="overflow-x-auto">
@@ -918,20 +916,14 @@ export default function ProductsPage() {
                             <label htmlFor="categoryId" className="block text-xs sm:text-sm font-medium text-gray-700">
                               Category <span className="text-red-500">*</span>
                             </label>
-                            <select
+                            <CustomSelect
                               id="categoryId"
                               value={formData.categoryId}
-                              onChange={(e) => setFormData({ ...formData, categoryId: e.target.value })}
-                              className="mt-1 block w-full rounded-lg border border-gray-300 px-3 py-2 shadow-sm focus:border-gray-500 focus:outline-none focus:ring-1 focus:ring-gray-500 text-sm"
-                              required
-                            >
-                              <option value="">Select Category</option>
-                              {categories.map((category) => (
-                                <option key={category.id} value={category.id}>
-                                  {category.name}
-                                </option>
-                              ))}
-                            </select>
+                              onChange={(v) => setFormData({ ...formData, categoryId: v })}
+                              options={categories.map((c) => ({ value: String(c.id), label: c.name }))}
+                              placeholder="Select Category"
+                              className="mt-1"
+                            />
                           </div>
 
                           <div>
@@ -953,19 +945,14 @@ export default function ProductsPage() {
                             <label htmlFor="supplierId" className="block text-xs sm:text-sm font-medium text-gray-700">
                               Supplier
                             </label>
-                            <select
+                            <CustomSelect
                               id="supplierId"
                               value={formData.supplierId}
-                              onChange={(e) => setFormData({ ...formData, supplierId: e.target.value })}
-                              className="mt-1 block w-full rounded-lg border border-gray-300 px-3 py-2 shadow-sm focus:border-gray-500 focus:outline-none focus:ring-1 focus:ring-gray-500 text-sm"
-                            >
-                              <option value="">No Supplier</option>
-                              {suppliers.map((supplier) => (
-                                <option key={supplier.id} value={supplier.id}>
-                                  {supplier.name}
-                                </option>
-                              ))}
-                            </select>
+                              onChange={(v) => setFormData({ ...formData, supplierId: v })}
+                              options={suppliers.map((s) => ({ value: String(s.id), label: s.name }))}
+                              placeholder="No Supplier"
+                              className="mt-1"
+                            />
                           </div>
 
                           <div>
@@ -1104,48 +1091,41 @@ export default function ProductsPage() {
                           <label htmlFor="eslTag" className="block text-xs sm:text-sm font-medium text-gray-700">
                             ESL Tag <span className="text-red-500">*</span>
                           </label>
-                          <select
+                          <CustomSelect
                             id="eslTag"
                             value={selectedTag}
-                            onChange={(e) => setSelectedTag(e.target.value)}
-                            className="mt-1 block w-full rounded-lg border border-gray-300 px-3 py-2 shadow-sm focus:border-gray-500 focus:outline-none focus:ring-1 focus:ring-gray-500 text-sm"
-                            required
-                          >
-                            <option value="">Select ESL Tag</option>
-                            {eslTags.map((tag) => (
-                              <option key={tag.id} value={tag.mac}>
-                                {tag.mac} - {tag.screenSize} ({tag.isOnline === '2' ? 'Online' : 'Offline'})
-                              </option>
-                            ))}
-                          </select>
+                            onChange={setSelectedTag}
+                            options={eslTags.map((tag) => ({
+                              value: tag.mac,
+                              label: `${tag.mac} - ${tag.screenSize} (${tag.isOnline === '2' ? 'Online' : 'Offline'})`,
+                            }))}
+                            placeholder="Select ESL Tag"
+                            className="mt-1"
+                          />
                         </div>
 
                         <div>
                           <label htmlFor="template" className="block text-xs sm:text-sm font-medium text-gray-700">
                             Template <span className="text-red-500">*</span>
                           </label>
-                          <select
+                          <CustomSelect
                             id="template"
                             value={selectedTemplate}
-                            onChange={(e) => setSelectedTemplate(e.target.value)}
-                            className="mt-1 block w-full rounded-lg border border-gray-300 px-3 py-2 shadow-sm focus:border-gray-500 focus:outline-none focus:ring-1 focus:ring-gray-500 text-sm"
-                            required
-                          >
-                            <option value="">Select Template</option>
-                            {templates.map((template) => {
+                            onChange={setSelectedTemplate}
+                            options={templates.map((template) => {
                               const templateId = template.id || template.demoId;
                               const templateName = template.name || template.demoName;
-                              const screenSize = typeof template.screenSize === 'string' 
-                                ? template.screenSize 
+                              const screenSize = typeof template.screenSize === 'string'
+                                ? template.screenSize
                                 : `${template.screenSize.inch}" (${template.screenSize.width}x${template.screenSize.height})`;
-                              
-                              return (
-                                <option key={templateId} value={templateId}>
-                                  {templateName} - {screenSize} ({template.color})
-                                </option>
-                              );
+                              return {
+                                value: String(templateId),
+                                label: `${templateName} - ${screenSize} (${template.color})`,
+                              };
                             })}
-                          </select>
+                            placeholder="Select Template"
+                            className="mt-1"
+                          />
                         </div>
                       </div>
                     </div>

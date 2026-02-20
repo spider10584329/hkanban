@@ -191,8 +191,35 @@ export async function PUT(request: NextRequest) {
       updatedAt: new Date(),
     };
 
-    if (status === 'APPROVED' && approved_by_id) {
-      updateData.approvedById = approved_by_id;
+    if (status === 'APPROVED') {
+      // Resolve approvedById: verify the provided ID exists in the local users table.
+      // Admin logins use a PulsePoint external ID which may not exist locally,
+      // so fall back to the first active user in the same manager scope.
+      let resolvedApproverId: number | null = null;
+
+      if (approved_by_id) {
+        const approver = await prisma.user.findUnique({ where: { id: parseInt(approved_by_id) } });
+        if (approver) {
+          resolvedApproverId = approver.id;
+        }
+      }
+
+      if (!resolvedApproverId) {
+        // Fetch the request to get manager_id, then find a valid local user
+        const existingRequest = await prisma.replenishmentRequest.findUnique({
+          where: { id: parseInt(id) },
+          select: { manager_id: true },
+        });
+        if (existingRequest) {
+          const fallbackUser = await prisma.user.findFirst({
+            where: { manager_id: existingRequest.manager_id },
+            orderBy: { id: 'asc' },
+          });
+          resolvedApproverId = fallbackUser?.id ?? null;
+        }
+      }
+
+      updateData.approvedById = resolvedApproverId;
       updateData.approvedAt = new Date();
     }
 

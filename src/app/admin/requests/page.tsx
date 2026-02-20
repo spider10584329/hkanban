@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
+import { CustomSelect } from '@/components/ui/CustomSelect';
 
 // Decode JWT without a library
 function decodeToken(token: string) {
@@ -389,39 +390,42 @@ export default function RequestsPage() {
             className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-gray-500 text-sm"
           />
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-            <select
+            <CustomSelect
               value={statusFilter}
-              onChange={(e) => setStatusFilter(e.target.value)}
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-gray-500 text-sm"
-            >
-              <option value="">All Status</option>
-              <option value="PENDING">Pending</option>
-              <option value="APPROVED">Approved</option>
-              <option value="REJECTED">Rejected</option>
-              <option value="ORDERED">Ordered</option>
-              <option value="COMPLETED">Completed</option>
-            </select>
-            <select
+              onChange={setStatusFilter}
+              options={[
+                { value: 'PENDING', label: 'Pending' },
+                { value: 'APPROVED', label: 'Approved' },
+                { value: 'REJECTED', label: 'Rejected' },
+                { value: 'ORDERED', label: 'Ordered' },
+                { value: 'COMPLETED', label: 'Completed' },
+              ]}
+              placeholder="All Status"
+              searchable={false}
+            />
+            <CustomSelect
               value={priorityFilter}
-              onChange={(e) => setPriorityFilter(e.target.value)}
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-gray-500 text-sm"
-            >
-              <option value="">All Priorities</option>
-              <option value="LOW">Low</option>
-              <option value="NORMAL">Normal</option>
-              <option value="HIGH">High</option>
-              <option value="URGENT">Urgent</option>
-            </select>
-            <select
+              onChange={setPriorityFilter}
+              options={[
+                { value: 'LOW', label: 'Low' },
+                { value: 'NORMAL', label: 'Normal' },
+                { value: 'HIGH', label: 'High' },
+                { value: 'URGENT', label: 'Urgent' },
+              ]}
+              placeholder="All Priorities"
+              searchable={false}
+            />
+            <CustomSelect
               value={methodFilter}
-              onChange={(e) => setMethodFilter(e.target.value)}
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-gray-500 text-sm"
-            >
-              <option value="">All Methods</option>
-              <option value="QR">QR Scan</option>
-              <option value="EINK">E-ink Button</option>
-              <option value="MANUAL">Manual</option>
-            </select>
+              onChange={setMethodFilter}
+              options={[
+                { value: 'QR', label: 'QR Scan' },
+                { value: 'EINK', label: 'E-ink Button' },
+                { value: 'MANUAL', label: 'Manual' },
+              ]}
+              placeholder="All Methods"
+              searchable={false}
+            />
           </div>
         </div>
         <div className="overflow-x-auto">

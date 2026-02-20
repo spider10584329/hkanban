@@ -2,6 +2,7 @@
 
 import React, { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
+import { CustomSelect } from '@/components/ui/CustomSelect';
 
 // Helper function to decode JWT token
 function decodeToken(token: string) {
@@ -303,18 +304,20 @@ export default function MyRequestsPage() {
               />
             </div>
             <div>
-              <select
-                value={statusFilter}
-                onChange={(e) => setStatusFilter(e.target.value)}
-                className="w-full sm:w-auto px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white"
-              >
-                <option value="ALL">All Status</option>
-                <option value="PENDING">Pending</option>
-                <option value="APPROVED">Approved</option>
-                <option value="ORDERED">Ordered</option>
-                <option value="COMPLETED">Completed</option>
-                <option value="REJECTED">Rejected</option>
-              </select>
+              <CustomSelect
+                value={statusFilter === 'ALL' ? '' : statusFilter}
+                onChange={(v) => setStatusFilter(v === '' ? 'ALL' : v)}
+                options={[
+                  { value: 'PENDING', label: 'Pending' },
+                  { value: 'APPROVED', label: 'Approved' },
+                  { value: 'ORDERED', label: 'Ordered' },
+                  { value: 'COMPLETED', label: 'Completed' },
+                  { value: 'REJECTED', label: 'Rejected' },
+                ]}
+                placeholder="All Status"
+                searchable={false}
+                className="w-full sm:w-48"
+              />
             </div>
           </div>
         </div>

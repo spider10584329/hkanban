@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { CustomSelect } from '@/components/ui/CustomSelect';
 
 interface User {
   id: number;
@@ -11,7 +12,7 @@ interface User {
 
 export default function AdminUsersPage() {
   const [searchTerm, setSearchTerm] = useState('');
-  const [statusFilter, setStatusFilter] = useState('all');
+  const [statusFilter, setStatusFilter] = useState('');
   const [users, setUsers] = useState<User[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -102,7 +103,7 @@ export default function AdminUsersPage() {
 
   const filteredUsers = users.filter(user => {
     const matchesSearch = user.username.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesStatus = statusFilter === 'all' ||
+    const matchesStatus = statusFilter === '' ||
       (statusFilter === 'active' && user.isActive === 1) ||
       (statusFilter === 'inactive' && user.isActive === 0);
     return matchesSearch && matchesStatus;
@@ -180,15 +181,17 @@ export default function AdminUsersPage() {
             onChange={(e) => setSearchTerm(e.target.value)}
             className="flex-1 px-3 sm:px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-gray-500 text-sm sm:text-base"
           />
-          <select
+          <CustomSelect
             value={statusFilter}
-            onChange={(e) => setStatusFilter(e.target.value)}
-            className="px-3 sm:px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-gray-500 text-sm sm:text-base"
-          >
-            <option value="all">All Status</option>
-            <option value="active">Active</option>
-            <option value="inactive">Inactive/Pending</option>
-          </select>
+            onChange={setStatusFilter}
+            options={[
+              { value: 'active', label: 'Active' },
+              { value: 'inactive', label: 'Inactive/Pending' },
+            ]}
+            placeholder="All Status"
+            searchable={false}
+            className="w-full sm:w-48"
+          />
         </div>
 
         <div className="overflow-x-auto">
@@ -206,7 +209,7 @@ export default function AdminUsersPage() {
               {filteredUsers.length === 0 ? (
                 <tr>
                   <td colSpan={5} className="px-3 sm:px-6 py-12 text-center text-gray-500 text-sm">
-                    {searchTerm || statusFilter !== 'all'
+                    {searchTerm || statusFilter !== ''
                       ? 'No users found matching your filters.'
                       : 'No users registered yet. Agents can register from the login page.'}
                   </td>
