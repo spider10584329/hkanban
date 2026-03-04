@@ -791,8 +791,8 @@ export default function ProductsPage() {
                         </div>
                       </div>
                     </td>
-                    <td className="px-3 sm:px-6 py-4 hidden lg:table-cell">
-                      <div className="text-xs sm:text-sm text-gray-900 break-all">{product.qrCodeUrl || '-'}</div>
+                    <td className="px-3 sm:px-6 py-4 hidden lg:table-cell max-w-[160px]">
+                      <div className="text-xs sm:text-sm text-gray-900 truncate" title={product.qrCodeUrl || undefined}>{product.qrCodeUrl || '-'}</div>
                     </td>
                     <td className="px-3 sm:px-6 py-4 hidden xl:table-cell">
                       <div className="text-xs sm:text-sm text-gray-900 break-all">{product.minewBoundLabel || '-'}</div>

@@ -37,7 +37,19 @@ export async function POST(request: NextRequest) {
     }
 
     // ── Step 2: Generate the QR URL that will be encoded in the tag screen ────
-    const appUrl = process.env.NEXT_PUBLIC_APP_URL || process.env.NEXTAUTH_URL || 'http://localhost:3000';
+    // Derive the base URL from the incoming request so it is always correct
+    // regardless of the deployment domain (localhost, staging, production, etc.).
+    // Falls back to NEXT_PUBLIC_APP_URL only when host headers are absent.
+    const proto =
+      request.headers.get('x-forwarded-proto') ||
+      (request.headers.get('host')?.startsWith('localhost') ? 'http' : 'https');
+    const host =
+      request.headers.get('x-forwarded-host') ||
+      request.headers.get('host') ||
+      '';
+    const appUrl = host
+      ? `${proto}://${host}`
+      : (process.env.NEXT_PUBLIC_APP_URL || process.env.NEXTAUTH_URL || 'http://localhost:3000');
     const qrUrl = `${appUrl}/scan?productId=${goodsId}&mac=${cleanMac}&storeId=${encodeURIComponent(storeId)}`;
 
     // Look up product location for including in Minew update
