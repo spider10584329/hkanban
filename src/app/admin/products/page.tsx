@@ -558,7 +558,8 @@ export default function ProductsPage() {
                 minewBoundLabel: selectedTag, 
                 minewBoundAt: new Date().toISOString(),
                 einkDeviceId: selectedTag,
-                hasEinkDevice: 1
+                hasEinkDevice: 1,
+                qrCodeUrl: data.qrUrl || p.qrCodeUrl,
               }
             : p
         ));
@@ -924,21 +925,6 @@ export default function ProductsPage() {
                               placeholder="Select Category"
                               className="mt-1"
                             />
-                          </div>
-
-                          <div>
-                            <label htmlFor="qrCodeUrl" className="block text-xs sm:text-sm font-medium text-gray-700">
-                              QR Code Value
-                            </label>
-                            <input
-                              type="text"
-                              id="qrCodeUrl"
-                              value={formData.qrCodeUrl}
-                              onChange={(e) => setFormData({ ...formData, qrCodeUrl: e.target.value })}
-                              className="mt-1 block w-full rounded-lg border border-gray-300 px-3 py-2 shadow-sm focus:border-gray-500 focus:outline-none focus:ring-1 focus:ring-gray-500 text-sm"
-                              placeholder="e.g., QR-PROD-12345"
-                            />
-                            <p className="mt-1 text-xs text-gray-500">Value encoded in the product's QR code sticker</p>
                           </div>
 
                           <div>

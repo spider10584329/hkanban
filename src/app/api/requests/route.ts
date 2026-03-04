@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { z } from 'zod';
+import { updateGoodsToStore } from '@/lib/minew';
+import { getDefaultStoreId } from '@/lib/minewTokenManager';
 
 const createRequestSchema = z.object({
   manager_id: z.number(),
@@ -243,6 +245,37 @@ export async function PUT(request: NextRequest) {
         },
       },
     });
+
+    // ── When COMPLETED: clear order_date on the ESL tag so the screen resets ──
+    if (status === 'COMPLETED') {
+      try {
+        const productRecord = await prisma.product.findUnique({
+          where: { id: (updatedRequest as any).productId },
+        });
+
+        const boundMac: string | null = (productRecord as any)?.minewBoundLabel ?? null;
+        const goodsId: string | null = (productRecord as any)?.minewGoodsId ?? null;
+
+        if (boundMac && goodsId) {
+          const storeId = await getDefaultStoreId();
+          if (storeId) {
+            // updateGoodsToStore uses /apis/esl/goods/updateToStore (API 3.3):
+            // permanently clears order_date in cloud AND refreshes the ESL screen.
+            const clearResult = await updateGoodsToStore(storeId, goodsId, {
+              order_date: '',
+            });
+            if (!clearResult.success) {
+              console.error('[Request COMPLETED] updateGoodsToStore (clear) failed:', clearResult.error);
+            } else {
+              console.log(`[Request COMPLETED] Cleared order_date for goodsId ${goodsId}`);
+            }
+          }
+        }
+      } catch (minewErr) {
+        // Non-fatal – request is already marked completed
+        console.error('[Request COMPLETED] Minew order_date clear failed:', minewErr);
+      }
+    }
 
     return NextResponse.json({ request: updatedRequest });
   } catch (error) {

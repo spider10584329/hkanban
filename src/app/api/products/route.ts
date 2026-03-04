@@ -246,6 +246,7 @@ export async function POST(request: NextRequest) {
           specification: product.description || "",
           quantity: product.standardOrderQty?.toString() || "0",
           supplier: product.supplier?.name || "",
+          location: product.location || "",
         };
 
         console.log('[Product Creation] Minew data prepared:', JSON.stringify(minewData, null, 2));
@@ -469,6 +470,7 @@ export async function PUT(request: NextRequest) {
             specification: updatedProduct.description || "",
             quantity: updatedProduct.standardOrderQty?.toString() || "0",
             supplier: updatedProduct.supplier?.name || "",
+            location: updatedProduct.location || "",
           };
 
           // Sync to Minew using direct API call

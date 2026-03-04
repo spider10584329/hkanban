@@ -153,6 +153,16 @@ export default function DevicesPage() {
   const [eslLabelSubmitting, setEslLabelSubmitting] = useState(false);
   const [eslLabelFormError, setEslLabelFormError] = useState<string | null>(null);
 
+  // Bind modal state
+  const [isBindModalOpen, setIsBindModalOpen] = useState(false);
+  const [bindModalTag, setBindModalTag] = useState<{ mac: string; storeId: string } | null>(null);
+  const [bindModalStoreId, setBindModalStoreId] = useState<string>('');
+  const [bindModalTemplateId, setBindModalTemplateId] = useState<string>('');
+  const [bindModalTemplates, setBindModalTemplates] = useState<Array<{ id: string; name: string }>>([]);
+  const [bindModalTemplatesLoading, setBindModalTemplatesLoading] = useState(false);
+  const [bindSubmitting, setBindSubmitting] = useState(false);
+  const [bindModalError, setBindModalError] = useState<string | null>(null);
+
   // Confirmation modal state
   const [confirmModal, setConfirmModal] = useState<{
     isOpen: boolean;
@@ -419,6 +429,84 @@ export default function DevicesPage() {
       macAddress: '',
     });
     setGatewayFormError(null);
+  };
+
+  const openBindModal = (tag: { mac: string; storeId: string }) => {
+    const initialStoreId = tag.storeId || selectedStoreId || (minewStores[0]?.storeId ?? '');
+    setBindModalTag(tag);
+    setBindModalStoreId(initialStoreId);
+    setBindModalTemplateId('');
+    setBindModalTemplates([]);
+    setBindModalError(null);
+    setIsBindModalOpen(true);
+    if (initialStoreId) {
+      fetchBindModalTemplates(initialStoreId);
+    }
+  };
+
+  const closeBindModal = () => {
+    setIsBindModalOpen(false);
+    setBindModalTag(null);
+    setBindModalStoreId('');
+    setBindModalTemplateId('');
+    setBindModalTemplates([]);
+    setBindModalError(null);
+  };
+
+  const fetchBindModalTemplates = async (storeId: string) => {
+    if (!storeId) return;
+    setBindModalTemplatesLoading(true);
+    try {
+      const response = await fetch(`/api/minew/templates?storeId=${storeId}&page=1&size=100`);
+      const data = await response.json();
+      if (response.ok && data.templates) {
+        setBindModalTemplates(data.templates);
+      } else {
+        setBindModalTemplates([]);
+      }
+    } catch {
+      setBindModalTemplates([]);
+    } finally {
+      setBindModalTemplatesLoading(false);
+    }
+  };
+
+  const handleBindSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!bindModalTag) return;
+    if (!bindModalStoreId) {
+      setBindModalError('Please select a store.');
+      return;
+    }
+    if (!bindModalTemplateId) {
+      setBindModalError('Please select a template.');
+      return;
+    }
+    setBindSubmitting(true);
+    setBindModalError(null);
+    try {
+      const response = await fetch('/api/minew/labels/bind', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          storeId: bindModalStoreId,
+          mac: bindModalTag.mac,
+          goodsId: bindModalTag.mac,
+          demoId: bindModalTemplateId,
+        }),
+      });
+      const data = await response.json();
+      if (!response.ok || !data.success) {
+        throw new Error(data.error || 'Failed to bind ESL tag');
+      }
+      notification.success('Bind Successful', `ESL tag "${bindModalTag.mac}" has been successfully bound.`);
+      closeBindModal();
+      await fetchESLTags(selectedStoreId);
+    } catch (err) {
+      setBindModalError(err instanceof Error ? err.message : 'Failed to bind ESL tag');
+    } finally {
+      setBindSubmitting(false);
+    }
   };
 
   const openESLLabelModal = () => {
@@ -1584,6 +1672,15 @@ export default function DevicesPage() {
                         <td className="px-4 py-3">
                           <div className="flex items-center gap-2">
                             <button
+                              onClick={() => openBindModal({ mac: tag.mac, storeId: tag.storeId })}
+                              className="text-blue-600 hover:text-blue-800"
+                              title="Link"
+                            >
+                              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" />
+                              </svg>
+                            </button>
+                            <button
                               onClick={() => handleDeleteESLTag({ mac: tag.mac, localId: tag.localId })}
                               className="text-red-600 hover:text-red-800"
                               title="Delete"
@@ -1903,6 +2000,109 @@ export default function DevicesPage() {
                     className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50"
                   >
                     {eslLabelSubmitting ? 'Confirming...' : 'Confirm'}
+                  </button>
+                </div>
+              </form>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Bind Modal */}
+      {isBindModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center">
+          <div className="fixed inset-0 bg-black/50 transition-opacity" onClick={closeBindModal} />
+          <div className="relative bg-white rounded-lg shadow-xl max-w-md w-full mx-4 transform transition-all">
+            <div className="flex items-center justify-between p-4 bg-gray-200 rounded-t-lg">
+              <h3 className="text-lg font-semibold text-gray-900">Bind ESL Label</h3>
+              <button onClick={closeBindModal} className="text-gray-400 hover:text-gray-600 transition-colors">
+                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+            <div className="p-6">
+              <form onSubmit={handleBindSubmit}>
+                {bindModalError && (
+                  <div className="mb-4 p-3 bg-red-50 border border-red-200 text-red-700 rounded-lg text-sm">
+                    {bindModalError}
+                  </div>
+                )}
+
+                {/* MAC Address (read-only) */}
+                <div className="mb-4">
+                  <label className="block text-sm font-medium text-gray-700 mb-1">MAC Address</label>
+                  <input
+                    type="text"
+                    value={bindModalTag?.mac ?? ''}
+                    readOnly
+                    className="w-full px-3 py-2 border border-gray-200 bg-gray-50 rounded-lg text-sm text-gray-500 font-mono"
+                  />
+                </div>
+
+                {/* Store ID */}
+                <div className="mb-4">
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    <span className="text-red-500">*</span> Store
+                  </label>
+                  <select
+                    value={bindModalStoreId}
+                    onChange={(e) => {
+                      setBindModalStoreId(e.target.value);
+                      setBindModalTemplateId('');
+                      fetchBindModalTemplates(e.target.value);
+                    }}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
+                    disabled={bindSubmitting}
+                  >
+                    <option value="">Select a store</option>
+                    {minewStores.map((store) => (
+                      <option key={store.storeId} value={store.storeId}>
+                        {store.name} ({store.storeId})
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                {/* Template ID */}
+                <div className="mb-6">
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    <span className="text-red-500">*</span> Template
+                  </label>
+                  {bindModalTemplatesLoading ? (
+                    <div className="text-sm text-gray-500 py-2">Loading templates...</div>
+                  ) : (
+                    <select
+                      value={bindModalTemplateId}
+                      onChange={(e) => setBindModalTemplateId(e.target.value)}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
+                      disabled={bindSubmitting || !bindModalStoreId}
+                    >
+                      <option value="">{bindModalStoreId ? 'Select a template' : 'Select a store first'}</option>
+                      {bindModalTemplates.map((tmpl) => (
+                        <option key={tmpl.id} value={tmpl.id}>
+                          {tmpl.name} ({tmpl.id})
+                        </option>
+                      ))}
+                    </select>
+                  )}
+                </div>
+
+                <div className="flex justify-end gap-3">
+                  <button
+                    type="button"
+                    onClick={closeBindModal}
+                    disabled={bindSubmitting}
+                    className="px-4 py-2 text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors disabled:opacity-50"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="submit"
+                    disabled={bindSubmitting}
+                    className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50"
+                  >
+                    {bindSubmitting ? 'Binding...' : 'Bind'}
                   </button>
                 </div>
               </form>

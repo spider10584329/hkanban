@@ -85,6 +85,7 @@ export async function POST(request: NextRequest) {
           specification: product.description || "",
           quantity: product.standardOrderQty?.toString() || "0",
           supplier: product.supplier?.name || "",
+          location: product.location || "",
         };
 
         // Sync to Minew

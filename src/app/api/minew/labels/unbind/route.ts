@@ -47,26 +47,27 @@ export async function POST(request: NextRequest) {
     console.log('[Minew Unbind API] Response from Minew:', result);
 
     if (result.code === 200) {
-      // Update local database to remove binding information
+      // Update local database to remove ALL binding-related fields.
+      // Use $executeRaw so that minewBoundLabel / minewBoundAt are always
+      // written regardless of Prisma client cache state.
+      // Also clears einkDeviceId / hasEinkDevice / qrCodeUrl so the
+      // unique_manager_eink and unique_manager_qrcode constraints won't
+      // block a future re-binding to a different product.
       try {
-        // Find product by minewBoundLabel (MAC address)
-        const product = await prisma.product.findFirst({
-          where: { minewBoundLabel: mac } as any,
-        });
-
-        if (product) {
-          await prisma.product.update({
-            where: { id: product.id },
-            data: {
-              minewBoundLabel: null,
-              minewBoundAt: null,
-            } as any,
-          });
-          console.log('[Minew Unbind API] Local database updated successfully');
-        }
+        const affected = await prisma.$executeRaw`
+          UPDATE products
+          SET einkDeviceId    = NULL,
+              hasEinkDevice   = 0,
+              qrCodeUrl       = NULL,
+              minewBoundLabel = NULL,
+              minewBoundAt    = NULL,
+              updatedAt       = ${new Date()}
+          WHERE minewBoundLabel = ${mac}
+             OR einkDeviceId   = ${mac}
+        `;
+        console.log('[Minew Unbind API] Local database updated, rows affected:', affected);
       } catch (dbError) {
         console.error('[Minew Unbind API] Failed to update local database:', dbError);
-        // Don't fail the request if DB update fails, unbinding already succeeded in Minew
       }
 
       return NextResponse.json({

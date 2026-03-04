@@ -860,7 +860,8 @@ export async function addInventoryData(
 }
 
 /**
- * Update inventory data
+ * Update inventory data (batch, no screen refresh)
+ * Uses /apis/esl/goods/update which requires goodsList array format.
  */
 export async function updateInventoryData(
   storeId: string,
@@ -869,9 +870,32 @@ export async function updateInventoryData(
 ): Promise<{ success: boolean; error?: string }> {
   const response = await minewApiCall('/apis/esl/goods/update', {
     method: 'POST',
-    body: { storeId, id: dataId, ...updates },
+    body: { storeId, goodsList: [{ id: dataId, ...updates }] },
   });
   
+  return {
+    success: response.code === 200,
+    error: response.code !== 200 ? response.msg : undefined,
+  };
+}
+
+/**
+ * Update a single goods record in Minew Cloud AND refresh the tag display.
+ * Uses /apis/esl/goods/updateToStore (API 3.3) — single item, with screen refresh,
+ * no template ID required.
+ *
+ * Use this whenever you need cloud data + tag display updated in one call.
+ */
+export async function updateGoodsToStore(
+  storeId: string,
+  dataId: string,
+  updates: Record<string, string>
+): Promise<{ success: boolean; error?: string }> {
+  const response = await minewApiCall('/apis/esl/goods/updateToStore', {
+    method: 'POST',
+    body: { storeId, id: dataId, ...updates },
+  });
+
   return {
     success: response.code === 200,
     error: response.code !== 200 ? response.msg : undefined,
