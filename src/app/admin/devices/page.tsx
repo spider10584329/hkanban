@@ -1032,14 +1032,14 @@ export default function DevicesPage() {
       </div>
 
       {/* Tab Navigation */}
-      <div className="border-b border-gray-200">
-        <nav className="flex gap-4">
+      <div className="border-b border-gray-200 overflow-x-auto">
+        <nav className="flex gap-1 sm:gap-4 min-w-max">
           <button
             onClick={() => {
               setActiveTab('store');
               fetchMinewStores();
             }}
-            className={`pb-3 px-4 text-sm font-medium border-b-2 transition-colors ${
+            className={`pb-3 px-3 sm:px-4 text-xs sm:text-sm font-medium border-b-2 transition-colors whitespace-nowrap ${
               activeTab === 'store'
                 ? 'border-blue-600 text-blue-600'
                 : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
@@ -1052,7 +1052,7 @@ export default function DevicesPage() {
               setActiveTab('template');
               if (selectedStoreId) fetchTemplates(selectedStoreId);
             }}
-            className={`pb-3 px-4 text-sm font-medium border-b-2 transition-colors ${
+            className={`pb-3 px-3 sm:px-4 text-xs sm:text-sm font-medium border-b-2 transition-colors whitespace-nowrap ${
               activeTab === 'template'
                 ? 'border-blue-600 text-blue-600'
                 : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
@@ -1066,7 +1066,7 @@ export default function DevicesPage() {
               if (selectedStoreId) fetchMinewGateways(selectedStoreId);
               fetchGateways();
             }}
-            className={`pb-3 px-4 text-sm font-medium border-b-2 transition-colors ${
+            className={`pb-3 px-3 sm:px-4 text-xs sm:text-sm font-medium border-b-2 transition-colors whitespace-nowrap ${
               activeTab === 'gateway'
                 ? 'border-blue-600 text-blue-600'
                 : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
@@ -1079,7 +1079,7 @@ export default function DevicesPage() {
               setActiveTab('esl');
               if (selectedStoreId) fetchESLTags(selectedStoreId);
             }}
-            className={`pb-3 px-4 text-sm font-medium border-b-2 transition-colors ${
+            className={`pb-3 px-3 sm:px-4 text-xs sm:text-sm font-medium border-b-2 transition-colors whitespace-nowrap ${
               activeTab === 'esl'
                 ? 'border-blue-600 text-blue-600'
                 : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
@@ -1144,23 +1144,23 @@ export default function DevicesPage() {
             </div>
 
             {/* Pagination */}
-            <div className="px-4 py-3 border-t border-gray-200 flex items-center justify-center gap-2">
+            <div className="px-4 py-3 border-t border-gray-200 flex flex-wrap items-center justify-center gap-2">
               <button className="px-3 py-1 bg-blue-500 text-white rounded text-sm font-medium">
                 1
               </button>
-              <div className="flex items-center gap-2 text-sm text-gray-600">
+              <div className="flex flex-wrap items-center justify-center gap-2 text-sm text-gray-600">
                 <select className="border border-gray-300 rounded px-2 py-1 text-sm">
                   <option>10/page</option>
                   <option>20/page</option>
                   <option>50/page</option>
                   <option>100/page</option>
                 </select>
-                <span>1 pages in total</span>
+                <span className="whitespace-nowrap">1 pages in total</span>
                 <span>Go to</span>
                 <input
                   type="number"
                   defaultValue="1"
-                  className="w-16 px-2 py-1 border border-gray-300 rounded text-sm"
+                  className="w-14 px-2 py-1 border border-gray-300 rounded text-sm"
                 />
                 <span>page</span>
                 <button className="px-3 py-1 bg-white border border-gray-300 rounded text-sm hover:bg-gray-50">
@@ -1176,8 +1176,8 @@ export default function DevicesPage() {
         <>
           {/* Store Selector for Templates */}
           <div className="bg-white rounded-lg shadow p-4 mb-4">
-            <div className="flex items-center gap-4">
-              <label htmlFor="template-store-select" className="text-sm font-medium text-gray-700">
+            <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4">
+              <label htmlFor="template-store-select" className="text-sm font-medium text-gray-700 shrink-0">
                 Select Store:
               </label>
               <CustomSelect
@@ -1195,7 +1195,7 @@ export default function DevicesPage() {
                 }))}
                 placeholder="-- Select a store --"
                 clearable={false}
-                className="flex-1 max-w-md"
+                className="w-full sm:flex-1 sm:max-w-md"
               />
               {selectedStoreId && (
                 <button
@@ -1288,23 +1288,23 @@ export default function DevicesPage() {
             </div>
 
             {/* Pagination */}
-            <div className="px-4 py-3 border-t border-gray-200 flex items-center justify-center gap-2">
+            <div className="px-4 py-3 border-t border-gray-200 flex flex-wrap items-center justify-center gap-2">
               <button className="px-3 py-1 bg-blue-500 text-white rounded text-sm font-medium">
                 1
               </button>
-              <div className="flex items-center gap-2 text-sm text-gray-600">
+              <div className="flex flex-wrap items-center justify-center gap-2 text-sm text-gray-600">
                 <select className="border border-gray-300 rounded px-2 py-1 text-sm">
                   <option>10/page</option>
                   <option>20/page</option>
                   <option>50/page</option>
                   <option>100/page</option>
                 </select>
-                <span>1 pages in total</span>
+                <span className="whitespace-nowrap">1 pages in total</span>
                 <span>Go to</span>
                 <input
                   type="number"
                   defaultValue="1"
-                  className="w-16 px-2 py-1 border border-gray-300 rounded text-sm"
+                  className="w-14 px-2 py-1 border border-gray-300 rounded text-sm"
                 />
                 <span>page</span>
                 <button className="px-3 py-1 bg-white border border-gray-300 rounded text-sm hover:bg-gray-50">
@@ -1320,8 +1320,8 @@ export default function DevicesPage() {
         <>
           {/* Store Selector for Gateways */}
           <div className="bg-white rounded-lg shadow p-4 mb-4">
-            <div className="flex items-center gap-4">
-              <label htmlFor="gateway-store-select" className="text-sm font-medium text-gray-700">
+            <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4">
+              <label htmlFor="gateway-store-select" className="text-sm font-medium text-gray-700 shrink-0">
                 Select Store:
               </label>
               <CustomSelect
@@ -1339,7 +1339,7 @@ export default function DevicesPage() {
                 }))}
                 placeholder="-- Select a store --"
                 clearable={false}
-                className="flex-1 max-w-md"
+                className="w-full sm:flex-1 sm:max-w-md"
               />
               {selectedStoreId && (
                 <button
@@ -1359,13 +1359,13 @@ export default function DevicesPage() {
           </div>
 
           {/* Gateway Action Bar */}
-          <div className="flex flex-wrap items-center justify-between gap-3 bg-white p-4 rounded-lg shadow">
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 bg-white p-4 rounded-lg shadow">
             <div className="flex flex-wrap gap-2">
-              <div className="relative">
+              <div className="relative w-full sm:w-auto">
                 <input
                   type="text"
                   placeholder="Search"
-                  className="pl-4 pr-10 py-2 border border-gray-300 rounded-lg text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                  className="w-full sm:w-auto pl-4 pr-10 py-2 border border-gray-300 rounded-lg text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
                 />
                 <svg className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
@@ -1482,23 +1482,23 @@ export default function DevicesPage() {
             </div>
 
             {/* Pagination */}
-            <div className="px-4 py-3 border-t border-gray-200 flex items-center justify-center gap-2">
+            <div className="px-4 py-3 border-t border-gray-200 flex flex-wrap items-center justify-center gap-2">
               <button className="px-3 py-1 bg-blue-500 text-white rounded text-sm font-medium">
                 1
               </button>
-              <div className="flex items-center gap-2 text-sm text-gray-600">
+              <div className="flex flex-wrap items-center justify-center gap-2 text-sm text-gray-600">
                 <select className="border border-gray-300 rounded px-2 py-1 text-sm">
                   <option>10/page</option>
                   <option>20/page</option>
                   <option>50/page</option>
                   <option>100/page</option>
                 </select>
-                <span>1 pages in total</span>
+                <span className="whitespace-nowrap">1 pages in total</span>
                 <span>Go to</span>
                 <input
                   type="number"
                   defaultValue="1"
-                  className="w-16 px-2 py-1 border border-gray-300 rounded text-sm"
+                  className="w-14 px-2 py-1 border border-gray-300 rounded text-sm"
                 />
                 <span>page</span>
                 <button className="px-3 py-1 bg-white border border-gray-300 rounded text-sm hover:bg-gray-50">
@@ -1514,8 +1514,8 @@ export default function DevicesPage() {
         <>
           {/* Store Selector for ESL Tags */}
           <div className="bg-white rounded-lg shadow p-4 mb-4">
-            <div className="flex items-center gap-4">
-              <label htmlFor="esl-store-select" className="text-sm font-medium text-gray-700">
+            <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4">
+              <label htmlFor="esl-store-select" className="text-sm font-medium text-gray-700 shrink-0">
                 Select Store:
               </label>
               <CustomSelect
@@ -1533,7 +1533,7 @@ export default function DevicesPage() {
                 }))}
                 placeholder="-- Select a store --"
                 clearable={false}
-                className="flex-1 max-w-md"
+                className="w-full sm:flex-1 sm:max-w-md"
               />
               {selectedStoreId && (
                 <button
@@ -1550,15 +1550,15 @@ export default function DevicesPage() {
           </div>
 
           {/* Action Buttons Bar */}
-          <div className="flex flex-wrap items-center justify-between gap-3 bg-white p-4 rounded-lg shadow">
-            <div className="flex flex-wrap gap-2">
-              <div className="relative">
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 bg-white p-4 rounded-lg shadow">
+            <div className="flex flex-wrap gap-2 w-full sm:w-auto">
+              <div className="relative w-full sm:w-auto">
                 <input
                   type="text"
                   placeholder="Search"
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
-                  className="pl-4 pr-10 py-2 border border-gray-300 rounded-lg text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                  className="w-full sm:w-auto pl-4 pr-10 py-2 border border-gray-300 rounded-lg text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
                 />
                 <svg className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
@@ -1699,23 +1699,23 @@ export default function DevicesPage() {
             </div>
 
             {/* Pagination */}
-            <div className="px-4 py-3 border-t border-gray-200 flex items-center justify-center gap-2">
+            <div className="px-4 py-3 border-t border-gray-200 flex flex-wrap items-center justify-center gap-2">
               <button className="px-3 py-1 bg-blue-500 text-white rounded text-sm font-medium">
                 1
               </button>
-              <div className="flex items-center gap-2 text-sm text-gray-600">
+              <div className="flex flex-wrap items-center justify-center gap-2 text-sm text-gray-600">
                 <select className="border border-gray-300 rounded px-2 py-1 text-sm">
                   <option>10/page</option>
                   <option>20/page</option>
                   <option>50/page</option>
                   <option>100/page</option>
                 </select>
-                <span>1 pages in total</span>
+                <span className="whitespace-nowrap">1 pages in total</span>
                 <span>Go to</span>
                 <input
                   type="number"
                   defaultValue="1"
-                  className="w-16 px-2 py-1 border border-gray-300 rounded text-sm"
+                  className="w-14 px-2 py-1 border border-gray-300 rounded text-sm"
                 />
                 <span>page</span>
                 <button className="px-3 py-1 bg-white border border-gray-300 rounded text-sm hover:bg-gray-50">
