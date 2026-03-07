@@ -518,6 +518,8 @@ const en = {
     completedAt: 'Completed at',
     hide: 'Hide',
     view: 'View',
+    hideDetails: 'Hide Details',
+    viewDetails: 'View Details',
   },
 
   // Agent Scan

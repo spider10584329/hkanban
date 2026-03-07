@@ -518,7 +518,10 @@ const fr: TranslationKey = {
     approvedAt: 'Approuv\u00e9 le',
     completedAt: 'Compl\u00e9t\u00e9 le',
     hide: 'Masquer',
-    view: 'Voir',  },
+    view: 'Voir',
+    hideDetails: 'Masquer les détails',
+    viewDetails: 'Voir les détails',
+  },
 
   // Agent Scan
   agentScan: {
