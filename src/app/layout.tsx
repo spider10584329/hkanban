@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from "next";
 import "./globals.css";
 import { AuthProvider } from "@/contexts/AuthContext";
 import { ToastProvider } from "@/components/ui/ToastProvider";
+import { LanguageProvider } from "@/contexts/LanguageContext";
 
 export const viewport: Viewport = {
 	width: 'device-width',
@@ -26,9 +27,11 @@ export default function RootLayout({
 				className="antialiased"
 			>
 				<ToastProvider>
-					<AuthProvider>
-						{children}
-					</AuthProvider>
+					<LanguageProvider>
+						<AuthProvider>
+							{children}
+						</AuthProvider>
+					</LanguageProvider>
 				</ToastProvider>
 			</body>
 		</html>

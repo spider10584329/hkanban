@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { CustomSelect } from '@/components/ui/CustomSelect';
+import { useLanguage } from '@/contexts/LanguageContext';
 
 interface OrderItem {
   id: number;
@@ -87,6 +88,7 @@ interface Stats {
 }
 
 export default function OrdersPage() {
+  const { t } = useLanguage();
   const [orders, setOrders] = useState<Order[]>([]);
   const [suppliers, setSuppliers] = useState<Supplier[]>([]);
   const [approvedRequests, setApprovedRequests] = useState<ApprovedRequest[]>([]);
@@ -247,7 +249,7 @@ export default function OrdersPage() {
   };
 
   const handleDelete = async (orderId: number) => {
-    if (!confirm('Are you sure you want to delete this order? Linked requests will be restored to APPROVED status.')) {
+    if (!confirm(t.orders.confirmDelete)) {
       return;
     }
 
@@ -344,7 +346,7 @@ export default function OrdersPage() {
   if (loading) {
     return (
       <div className="flex items-center justify-center h-64">
-        <div className="text-gray-600">Loading orders...</div>
+        <div className="text-gray-600">{t.orders.loading}</div>
       </div>
     );
   }
@@ -359,13 +361,13 @@ export default function OrdersPage() {
             </svg>
           </div>
           <div>
-            <h3 className="text-sm font-medium text-red-900">Error Loading Orders</h3>
+            <h3 className="text-sm font-medium text-red-900">{t.orders.errorLoading}</h3>
             <p className="text-sm text-red-700 mt-1">{error}</p>
             <button
               onClick={fetchOrders}
               className="mt-3 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors text-sm"
             >
-              Try Again
+              {t.common.tryAgain}
             </button>
           </div>
         </div>
@@ -377,42 +379,42 @@ export default function OrdersPage() {
     <div className="space-y-4 sm:space-y-6 p-4 sm:p-0">
       <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4">
         <div>
-          <h1 className="text-xl sm:text-2xl font-bold text-gray-800">Orders</h1>
-          <p className="text-xs sm:text-sm text-gray-600 mt-1">Manage purchase orders and deliveries</p>
+          <h1 className="text-xl sm:text-2xl font-bold text-gray-800">{t.orders.title}</h1>
+          <p className="text-xs sm:text-sm text-gray-600 mt-1">{t.orders.subtitle}</p>
         </div>
         <button
           onClick={openCreateModal}
           className="px-4 py-2 bg-gray-900 text-white rounded-lg hover:bg-black transition-colors flex items-center justify-center gap-2 text-sm"
         >
           <span>+</span>
-          <span>Create Order</span>
+          <span>{t.orders.createOrder}</span>
         </button>
       </div>
 
       {/* Stats Cards */}
       <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3 sm:gap-4">
         <div className="bg-white rounded-lg shadow p-4 sm:p-6">
-          <div className="text-xs sm:text-sm text-gray-600">Total Orders</div>
+          <div className="text-xs sm:text-sm text-gray-600">{t.orders.totalOrders}</div>
           <div className="text-xl sm:text-2xl font-bold text-gray-900 mt-1 sm:mt-2">{stats.totalOrders}</div>
         </div>
         <div className="bg-yellow-50 rounded-lg shadow p-4 sm:p-6 border border-yellow-200">
-          <div className="text-xs sm:text-sm text-yellow-700">Pending</div>
+          <div className="text-xs sm:text-sm text-yellow-700">{t.orders.pendingOrders}</div>
           <div className="text-xl sm:text-2xl font-bold text-yellow-700 mt-1 sm:mt-2">{stats.pendingOrders}</div>
         </div>
         <div className="bg-blue-50 rounded-lg shadow p-4 sm:p-6 border border-blue-200">
-          <div className="text-xs sm:text-sm text-blue-700">Sent</div>
+          <div className="text-xs sm:text-sm text-blue-700">{t.orders.sentOrders}</div>
           <div className="text-xl sm:text-2xl font-bold text-blue-700 mt-1 sm:mt-2">{stats.sentOrders}</div>
         </div>
         <div className="bg-purple-50 rounded-lg shadow p-4 sm:p-6 border border-purple-200">
-          <div className="text-xs sm:text-sm text-purple-700">In Transit</div>
+          <div className="text-xs sm:text-sm text-purple-700">{t.orders.inTransitOrders}</div>
           <div className="text-xl sm:text-2xl font-bold text-purple-700 mt-1 sm:mt-2">{stats.inTransitOrders}</div>
         </div>
         <div className="bg-green-50 rounded-lg shadow p-4 sm:p-6 border border-green-200">
-          <div className="text-xs sm:text-sm text-green-700">Delivered</div>
+          <div className="text-xs sm:text-sm text-green-700">{t.orders.deliveredOrders}</div>
           <div className="text-xl sm:text-2xl font-bold text-green-700 mt-1 sm:mt-2">{stats.deliveredOrders}</div>
         </div>
         <div className="bg-gray-50 rounded-lg shadow p-4 sm:p-6 border border-gray-200 col-span-2 sm:col-span-1">
-          <div className="text-xs sm:text-sm text-gray-700">This Month</div>
+          <div className="text-xs sm:text-sm text-gray-700">{t.orders.thisMonthSpending}</div>
           <div className="text-lg sm:text-2xl font-bold text-gray-900 mt-1 sm:mt-2">{formatCurrency(stats.thisMonthSpending)}</div>
         </div>
       </div>
@@ -422,7 +424,7 @@ export default function OrdersPage() {
         <div className="p-4 sm:p-6 border-b border-gray-200 space-y-3">
           <input
             type="text"
-            placeholder="Search orders..."
+            placeholder={t.orders.searchPlaceholder}
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
             className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-gray-500 text-sm"
@@ -432,13 +434,13 @@ export default function OrdersPage() {
               value={statusFilter}
               onChange={setStatusFilter}
               options={[
-                { value: 'PENDING', label: 'Pending' },
-                { value: 'SENT', label: 'Sent' },
-                { value: 'IN_TRANSIT', label: 'In Transit' },
-                { value: 'DELIVERED', label: 'Delivered' },
-                { value: 'CANCELLED', label: 'Cancelled' },
+                { value: 'PENDING', label: t.common.pending },
+                { value: 'SENT', label: t.common.sent },
+                { value: 'IN_TRANSIT', label: t.common.inTransit },
+                { value: 'DELIVERED', label: t.common.delivered },
+                { value: 'CANCELLED', label: t.common.cancelled },
               ]}
-              placeholder="All Status"
+              placeholder={t.common.allStatus}
               searchable={false}
               className="flex-1"
             />
@@ -446,7 +448,7 @@ export default function OrdersPage() {
               value={supplierFilter}
               onChange={setSupplierFilter}
               options={suppliers.map((s) => ({ value: String(s.id), label: s.name }))}
-              placeholder="All Suppliers"
+              placeholder={t.orders.allSuppliers}
               className="flex-1"
             />
           </div>
@@ -455,14 +457,14 @@ export default function OrdersPage() {
           <table className="w-full min-w-[900px]">
             <thead className="bg-gray-50">
               <tr>
-                <th className="px-3 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Order #</th>
-                <th className="px-3 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Supplier</th>
-                <th className="px-3 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider hidden lg:table-cell">Items</th>
-                <th className="px-3 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Total Amount</th>
-                <th className="px-3 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
-                <th className="px-3 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider hidden md:table-cell">Order Date</th>
-                <th className="px-3 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider hidden xl:table-cell">Expected Delivery</th>
-                <th className="px-3 sm:px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
+                <th className="px-3 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">{t.orders.orderNumber}</th>
+                <th className="px-3 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">{t.orders.supplier}</th>
+                <th className="px-3 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider hidden lg:table-cell">{t.common.items}</th>
+                <th className="px-3 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">{t.orders.totalAmount}</th>
+                <th className="px-3 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">{t.common.status}</th>
+                <th className="px-3 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider hidden md:table-cell">{t.orders.orderDate}</th>
+                <th className="px-3 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider hidden xl:table-cell">{t.orders.expectedDelivery}</th>
+                <th className="px-3 sm:px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">{t.common.actions}</th>
               </tr>
             </thead>
             <tbody className="bg-white divide-y divide-gray-200">
@@ -470,8 +472,8 @@ export default function OrdersPage() {
                 <tr>
                   <td colSpan={8} className="px-3 sm:px-6 py-12 text-center text-gray-500 text-sm">
                     {searchTerm || statusFilter || supplierFilter
-                      ? 'No orders found matching your filters.'
-                      : 'No orders found. Click "Create Order" to create one from approved requests.'}
+                      ? t.common.noResults
+                      : t.orders.noOrders}
                   </td>
                 </tr>
               ) : (
@@ -518,7 +520,7 @@ export default function OrdersPage() {
                             onClick={() => handleUpdateStatus(order.id, 'SENT')}
                             className="px-2 sm:px-3 py-1 bg-blue-100 text-blue-700 hover:bg-blue-200 border border-blue-300 rounded-lg text-xs font-medium transition-colors whitespace-nowrap"
                           >
-                            Mark Sent
+                            {t.orders.markAsSent}
                           </button>
                         )}
                         {order.status === 'SENT' && (
@@ -526,7 +528,7 @@ export default function OrdersPage() {
                             onClick={() => handleUpdateStatus(order.id, 'IN_TRANSIT')}
                             className="px-2 sm:px-3 py-1 bg-purple-100 text-purple-700 hover:bg-purple-200 border border-purple-300 rounded-lg text-xs font-medium transition-colors whitespace-nowrap"
                           >
-                            In Transit
+                            {t.orders.markAsInTransit}
                           </button>
                         )}
                         {order.status === 'IN_TRANSIT' && (
@@ -534,7 +536,7 @@ export default function OrdersPage() {
                             onClick={() => handleUpdateStatus(order.id, 'DELIVERED')}
                             className="px-2 sm:px-3 py-1 bg-green-100 text-green-700 hover:bg-green-200 border border-green-300 rounded-lg text-xs font-medium transition-colors whitespace-nowrap"
                           >
-                            Delivered
+                            {t.orders.markAsDelivered}
                           </button>
                         )}
                         {order.status !== 'DELIVERED' && (
@@ -542,7 +544,7 @@ export default function OrdersPage() {
                             onClick={() => handleDelete(order.id)}
                             className="px-2 sm:px-3 py-1 bg-gray-100 text-gray-700 hover:bg-gray-200 border border-gray-300 rounded-lg text-xs font-medium transition-colors whitespace-nowrap"
                           >
-                            Delete
+                            {t.common.delete}
                           </button>
                         )}
                       </div>
@@ -563,13 +565,13 @@ export default function OrdersPage() {
             <div className="relative transform overflow-hidden rounded-lg bg-white text-left shadow-xl transition-all sm:my-8 w-full sm:max-w-2xl mx-4 sm:mx-0 max-h-[90vh] flex flex-col">
               <div className="bg-white px-4 pb-4 pt-5 sm:p-6 sm:pb-4 overflow-y-auto flex-1">
                 <h3 className="text-base sm:text-lg font-semibold leading-6 text-gray-900 mb-4">
-                  Create Order from Approved Requests
+                  {t.orders.createNewOrder}
                 </h3>
 
                 <div className="space-y-4">
                   <div>
                     <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-1">
-                      Select Supplier <span className="text-red-500">*</span>
+                      {t.orders.selectSupplier} <span className="text-red-500">*</span>
                     </label>
                     <CustomSelect
                       value={selectedSupplier}
@@ -585,7 +587,7 @@ export default function OrdersPage() {
 
                   <div>
                     <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-1">
-                      Expected Delivery Date
+                      {t.orders.expectedDelivery}
                     </label>
                     <input
                       type="date"
@@ -597,7 +599,7 @@ export default function OrdersPage() {
 
                   <div>
                     <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-2">
-                      Select Approved Requests <span className="text-red-500">*</span>
+                      {t.orders.selectRequests} <span className="text-red-500">*</span>
                     </label>
                     {filteredApprovedRequests.length === 0 ? (
                       <div className="text-xs sm:text-sm text-gray-500 p-4 bg-gray-50 rounded-lg">
@@ -664,7 +666,7 @@ export default function OrdersPage() {
                   disabled={submitting || !selectedSupplier || selectedRequests.length === 0}
                   className="inline-flex w-full justify-center rounded-lg bg-gray-900 px-4 py-2 text-xs sm:text-sm font-semibold text-white shadow-sm hover:bg-black disabled:bg-gray-400 sm:w-auto"
                 >
-                  {submitting ? 'Creating...' : 'Create Order'}
+                  {submitting ? t.orders.creating : t.orders.createOrder}
                 </button>
                 <button
                   type="button"
@@ -672,7 +674,7 @@ export default function OrdersPage() {
                   disabled={submitting}
                   className="mt-2 sm:mt-0 inline-flex w-full justify-center rounded-lg bg-white px-4 py-2 text-xs sm:text-sm font-semibold text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 hover:bg-gray-50 sm:w-auto"
                 >
-                  Cancel
+                  {t.common.cancel}
                 </button>
               </div>
             </div>
@@ -690,10 +692,10 @@ export default function OrdersPage() {
                 <div className="flex flex-col sm:flex-row justify-between items-start mb-4 gap-3">
                   <div>
                     <h3 className="text-base sm:text-lg font-semibold leading-6 text-gray-900">
-                      Order {selectedOrder.orderNumber}
+                      {t.orders.orderDetails}: {selectedOrder.orderNumber}
                     </h3>
                     <p className="text-xs sm:text-sm text-gray-500 mt-1">
-                      Supplier: {selectedOrder.supplier.name}
+                      {t.orders.supplier}: {selectedOrder.supplier.name}
                     </p>
                   </div>
                   {getStatusBadge(selectedOrder.status)}
@@ -701,29 +703,29 @@ export default function OrdersPage() {
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4 text-xs sm:text-sm">
                   <div>
-                    <span className="text-gray-500">Order Date:</span>
+                    <span className="text-gray-500">{t.orders.orderDate}:</span>
                     <span className="ml-2 text-gray-900">{formatDate(selectedOrder.orderDate)}</span>
                   </div>
                   <div>
-                    <span className="text-gray-500">Expected Delivery:</span>
+                    <span className="text-gray-500">{t.orders.expectedDelivery}:</span>
                     <span className="ml-2 text-gray-900">{formatDate(selectedOrder.expectedDelivery)}</span>
                   </div>
                   {selectedOrder.actualDelivery && (
                     <div>
-                      <span className="text-gray-500">Actual Delivery:</span>
+                      <span className="text-gray-500">{t.orders.actualDelivery}:</span>
                       <span className="ml-2 text-gray-900">{formatDate(selectedOrder.actualDelivery)}</span>
                     </div>
                   )}
                   {selectedOrder.trackingNumber && (
                     <div>
-                      <span className="text-gray-500">Tracking:</span>
+                      <span className="text-gray-500">{t.orders.trackingNumber}:</span>
                       <span className="ml-2 text-gray-900">{selectedOrder.trackingNumber}</span>
                     </div>
                   )}
                 </div>
 
                 <div className="border-t border-gray-200 pt-4">
-                  <h4 className="text-xs sm:text-sm font-medium text-gray-900 mb-2">Order Items</h4>
+                  <h4 className="text-xs sm:text-sm font-medium text-gray-900 mb-2">{t.orders.orderItems}</h4>
                   <div className="overflow-x-auto">
                     <table className="w-full text-xs sm:text-sm">
                       <thead className="bg-gray-50">
@@ -765,7 +767,7 @@ export default function OrdersPage() {
                   onClick={() => setIsDetailModalOpen(false)}
                   className="inline-flex w-full justify-center rounded-lg bg-white px-4 py-2 text-xs sm:text-sm font-semibold text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 hover:bg-gray-50 sm:w-auto"
                 >
-                  Close
+                  {t.common.close}
                 </button>
               </div>
             </div>

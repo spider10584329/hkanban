@@ -3,6 +3,7 @@
 import React, { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { CustomSelect } from '@/components/ui/CustomSelect';
+import { useLanguage } from '@/contexts/LanguageContext';
 
 // Helper function to decode JWT token
 function decodeToken(token: string) {
@@ -63,6 +64,7 @@ interface RequestsData {
 }
 
 export default function MyRequestsPage() {
+  const { t } = useLanguage();
   const router = useRouter();
   const [agentId, setAgentId] = useState<number | null>(null);
   const [managerId, setManagerId] = useState<number | null>(null);
@@ -205,7 +207,7 @@ export default function MyRequestsPage() {
   if (loading) {
     return (
       <div className="flex items-center justify-center h-64">
-        <div className="text-gray-600">Loading requests...</div>
+        <div className="text-gray-600">{t.agentRequests.loading}</div>
       </div>
     );
   }
@@ -220,13 +222,13 @@ export default function MyRequestsPage() {
             </svg>
           </div>
           <div>
-            <h3 className="text-sm font-medium text-red-900">Error Loading Requests</h3>
+            <h3 className="text-sm font-medium text-red-900">{t.agentRequests.errorLoading}</h3>
             <p className="text-sm text-red-700 mt-1">{error}</p>
             <button
               onClick={fetchRequests}
               className="mt-3 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors text-sm"
             >
-              Try Again
+              {t.common.tryAgain}
             </button>
           </div>
         </div>
@@ -248,8 +250,8 @@ export default function MyRequestsPage() {
     <div className="space-y-6">
       <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4">
         <div>
-          <h1 className="text-2xl font-bold text-gray-800">My Requests</h1>
-          <p className="text-sm text-gray-600 mt-1">Track your replenishment requests</p>
+          <h1 className="text-2xl font-bold text-gray-800">{t.agentRequests.title}</h1>
+          <p className="text-sm text-gray-600 mt-1">{t.agentRequests.subtitle}</p>
         </div>
         <button
           onClick={() => router.push('/agent/scan')}
@@ -258,34 +260,34 @@ export default function MyRequestsPage() {
           <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v1m6 11h2m-6 0h-2v4m0-11v3m0 0h.01M12 12h4.01M16 20h4M4 12h4m12 0h.01M5 8h2a1 1 0 001-1V5a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1zm12 0h2a1 1 0 001-1V5a1 1 0 00-1-1h-2a1 1 0 00-1 1v2a1 1 0 001 1zM5 20h2a1 1 0 001-1v-2a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1z" />
           </svg>
-          New Request
+          {t.agentRequests.newRequest}
         </button>
       </div>
 
       {/* Stats Cards */}
       <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
         <div className="bg-white rounded-lg shadow p-4">
-          <div className="text-xs text-gray-500 uppercase tracking-wide">Total</div>
+          <div className="text-xs text-gray-500 uppercase tracking-wide">{t.agentDashboard.total}</div>
           <div className="text-2xl font-bold text-gray-900 mt-1">{stats.totalRequests}</div>
         </div>
         <div className="bg-yellow-50 rounded-lg shadow p-4 border border-yellow-200">
-          <div className="text-xs text-yellow-700 uppercase tracking-wide">Pending</div>
+          <div className="text-xs text-yellow-700 uppercase tracking-wide">{t.common.pending}</div>
           <div className="text-2xl font-bold text-yellow-700 mt-1">{stats.pendingRequests}</div>
         </div>
         <div className="bg-blue-50 rounded-lg shadow p-4 border border-blue-200">
-          <div className="text-xs text-blue-700 uppercase tracking-wide">Approved</div>
+          <div className="text-xs text-blue-700 uppercase tracking-wide">{t.common.approved}</div>
           <div className="text-2xl font-bold text-blue-700 mt-1">{stats.approvedRequests}</div>
         </div>
         <div className="bg-purple-50 rounded-lg shadow p-4 border border-purple-200">
-          <div className="text-xs text-purple-700 uppercase tracking-wide">Ordered</div>
+          <div className="text-xs text-purple-700 uppercase tracking-wide">{t.common.ordered}</div>
           <div className="text-2xl font-bold text-purple-700 mt-1">{orderedRequests}</div>
         </div>
         <div className="bg-green-50 rounded-lg shadow p-4 border border-green-200">
-          <div className="text-xs text-green-700 uppercase tracking-wide">Completed</div>
+          <div className="text-xs text-green-700 uppercase tracking-wide">{t.common.completed}</div>
           <div className="text-2xl font-bold text-green-700 mt-1">{stats.completedRequests}</div>
         </div>
         <div className="bg-red-50 rounded-lg shadow p-4 border border-red-200">
-          <div className="text-xs text-red-700 uppercase tracking-wide">Rejected</div>
+          <div className="text-xs text-red-700 uppercase tracking-wide">{t.common.rejected}</div>
           <div className="text-2xl font-bold text-red-700 mt-1">{stats.rejectedRequests}</div>
         </div>
       </div>
@@ -297,7 +299,7 @@ export default function MyRequestsPage() {
             <div className="flex-1">
               <input
                 type="text"
-                placeholder="Search by product name, SKU, or location..."
+                placeholder={t.agentRequests.searchPlaceholder}
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
@@ -308,13 +310,13 @@ export default function MyRequestsPage() {
                 value={statusFilter === 'ALL' ? '' : statusFilter}
                 onChange={(v) => setStatusFilter(v === '' ? 'ALL' : v)}
                 options={[
-                  { value: 'PENDING', label: 'Pending' },
-                  { value: 'APPROVED', label: 'Approved' },
-                  { value: 'ORDERED', label: 'Ordered' },
-                  { value: 'COMPLETED', label: 'Completed' },
-                  { value: 'REJECTED', label: 'Rejected' },
+                  { value: 'PENDING', label: t.common.pending },
+                  { value: 'APPROVED', label: t.common.approved },
+                  { value: 'ORDERED', label: t.common.ordered },
+                  { value: 'COMPLETED', label: t.common.completed },
+                  { value: 'REJECTED', label: t.common.rejected },
                 ]}
-                placeholder="All Status"
+                placeholder={t.agentRequests.allStatuses}
                 searchable={false}
                 className="w-full sm:w-48"
               />
@@ -327,13 +329,13 @@ export default function MyRequestsPage() {
           <table className="w-full">
             <thead className="bg-gray-50">
               <tr>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Product</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Location</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Method</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Priority</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Requested</th>
-                <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Details</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">{t.agentRequests.product}</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">{t.agentRequests.location}</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">{t.agentRequests.method}</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">{t.common.status}</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">{t.common.status}</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">{t.agentRequests.requested}</th>
+                <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">{t.agentRequests.details}</th>
               </tr>
             </thead>
             <tbody className="bg-white divide-y divide-gray-200">
@@ -343,11 +345,11 @@ export default function MyRequestsPage() {
                     <svg className="w-12 h-12 mx-auto text-gray-300 mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
                     </svg>
-                    <p>No requests found</p>
+                    <p>{t.agentRequests.noRequests}</p>
                     <p className="text-xs mt-1">
                       {searchQuery || statusFilter !== 'ALL'
-                        ? 'Try adjusting your filters'
-                        : 'Scan a QR code to create a replenishment request'}
+                        ? t.agentRequests.tryAdjustingFilters
+                        : t.agentRequests.scanToCreate}
                     </p>
                   </td>
                 </tr>
@@ -374,7 +376,7 @@ export default function MyRequestsPage() {
                           onClick={() => setExpandedRequest(expandedRequest === request.id ? null : request.id)}
                           className="text-blue-600 hover:text-blue-800 text-sm"
                         >
-                          {expandedRequest === request.id ? 'Hide' : 'View'}
+                          {expandedRequest === request.id ? t.agentRequests.hide : t.agentRequests.view}
                         </button>
                       </td>
                     </tr>
@@ -383,40 +385,40 @@ export default function MyRequestsPage() {
                         <td colSpan={7} className="px-6 py-4 bg-gray-50">
                           <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
                             <div>
-                              <span className="text-gray-500">Quantity:</span>
+                              <span className="text-gray-500">{t.agentRequests.quantity}:</span>
                               <span className="ml-2 text-gray-900">{request.requestedQty || request.product.standardOrderQty || 'N/A'}</span>
                             </div>
                             <div>
-                              <span className="text-gray-500">Category:</span>
+                              <span className="text-gray-500">{t.agentRequests.category}:</span>
                               <span className="ml-2 text-gray-900">{request.product.category?.name || 'N/A'}</span>
                             </div>
                             {request.approvedBy && (
                               <div>
-                                <span className="text-gray-500">Approved by:</span>
+                                <span className="text-gray-500">{t.agentRequests.approvedBy}:</span>
                                 <span className="ml-2 text-gray-900">{request.approvedBy.username}</span>
                               </div>
                             )}
                             {request.approvedAt && (
                               <div>
-                                <span className="text-gray-500">Approved at:</span>
+                                <span className="text-gray-500">{t.agentRequests.approvedAt}:</span>
                                 <span className="ml-2 text-gray-900">{formatDate(request.approvedAt)}</span>
                               </div>
                             )}
                             {request.completedAt && (
                               <div>
-                                <span className="text-gray-500">Completed at:</span>
+                                <span className="text-gray-500">{t.agentRequests.completedAt}:</span>
                                 <span className="ml-2 text-gray-900">{formatDate(request.completedAt)}</span>
                               </div>
                             )}
                             {request.notes && (
                               <div className="col-span-2">
-                                <span className="text-gray-500">Notes:</span>
+                                <span className="text-gray-500">{t.agentRequests.notes}:</span>
                                 <span className="ml-2 text-gray-900">{request.notes}</span>
                               </div>
                             )}
                             {request.status === 'REJECTED' && request.rejectionReason && (
                               <div className="col-span-2 md:col-span-4">
-                                <span className="text-red-600 font-medium">Rejection Reason:</span>
+                                <span className="text-red-600 font-medium">{t.agentRequests.rejectionReason}:</span>
                                 <span className="ml-2 text-red-700">{request.rejectionReason}</span>
                               </div>
                             )}
@@ -438,11 +440,11 @@ export default function MyRequestsPage() {
               <svg className="w-12 h-12 mx-auto text-gray-300 mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
               </svg>
-              <p>No requests found</p>
+              <p>{t.agentRequests.noRequests}</p>
               <p className="text-xs mt-1">
                 {searchQuery || statusFilter !== 'ALL'
-                  ? 'Try adjusting your filters'
-                  : 'Scan a QR code to create a replenishment request'}
+                  ? t.agentRequests.tryAdjustingFilters
+                  : t.agentRequests.scanToCreate}
               </p>
             </div>
           ) : (
@@ -468,34 +470,34 @@ export default function MyRequestsPage() {
                     onClick={() => setExpandedRequest(expandedRequest === request.id ? null : request.id)}
                     className="text-blue-600 hover:text-blue-800 text-xs"
                   >
-                    {expandedRequest === request.id ? 'Hide details' : 'View details'}
+                    {expandedRequest === request.id ? t.agentRequests.hideDetails : t.agentRequests.viewDetails}
                   </button>
                 </div>
                 {expandedRequest === request.id && (
                   <div className="mt-3 pt-3 border-t border-gray-200 space-y-2 text-xs">
                     <div className="flex justify-between">
-                      <span className="text-gray-500">Quantity:</span>
+                      <span className="text-gray-500">{t.agentRequests.quantity}:</span>
                       <span className="text-gray-900">{request.requestedQty || request.product.standardOrderQty || 'N/A'}</span>
                     </div>
                     <div className="flex justify-between">
-                      <span className="text-gray-500">Category:</span>
+                      <span className="text-gray-500">{t.agentRequests.category}:</span>
                       <span className="text-gray-900">{request.product.category?.name || 'N/A'}</span>
                     </div>
                     {request.approvedBy && (
                       <div className="flex justify-between">
-                        <span className="text-gray-500">Approved by:</span>
+                        <span className="text-gray-500">{t.agentRequests.approvedBy}:</span>
                         <span className="text-gray-900">{request.approvedBy.username}</span>
                       </div>
                     )}
                     {request.notes && (
                       <div>
-                        <span className="text-gray-500">Notes:</span>
+                        <span className="text-gray-500">{t.agentRequests.notes}:</span>
                         <p className="text-gray-900 mt-1">{request.notes}</p>
                       </div>
                     )}
                     {request.status === 'REJECTED' && request.rejectionReason && (
                       <div className="bg-red-50 p-2 rounded">
-                        <span className="text-red-600 font-medium">Rejection Reason:</span>
+                        <span className="text-red-600 font-medium">{t.agentRequests.rejectionReason}:</span>
                         <p className="text-red-700 mt-1">{request.rejectionReason}</p>
                       </div>
                     )}

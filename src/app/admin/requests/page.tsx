@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { CustomSelect } from '@/components/ui/CustomSelect';
+import { useLanguage } from '@/contexts/LanguageContext';
 
 // Decode JWT without a library
 function decodeToken(token: string) {
@@ -58,6 +59,7 @@ interface Stats {
 }
 
 export default function RequestsPage() {
+  const { t } = useLanguage();
   const [requests, setRequests] = useState<Request[]>([]);
   const [stats, setStats] = useState<Stats>({
     totalRequests: 0,
@@ -160,7 +162,7 @@ export default function RequestsPage() {
   };
 
   const handleDelete = async (requestId: number) => {
-    if (!confirm('Are you sure you want to delete this request?')) {
+    if (!confirm(t.requests.confirmDelete)) {
       return;
     }
 
@@ -304,7 +306,7 @@ export default function RequestsPage() {
   if (loading) {
     return (
       <div className="flex items-center justify-center h-64">
-        <div className="text-gray-600">Loading requests...</div>
+        <div className="text-gray-600">{t.requests.loading}</div>
       </div>
     );
   }
@@ -319,13 +321,13 @@ export default function RequestsPage() {
             </svg>
           </div>
           <div>
-            <h3 className="text-sm font-medium text-red-900">Error Loading Requests</h3>
+            <h3 className="text-sm font-medium text-red-900">{t.requests.errorLoading}</h3>
             <p className="text-sm text-red-700 mt-1">{error}</p>
             <button
               onClick={fetchRequests}
               className="mt-3 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors text-sm"
             >
-              Try Again
+              {t.common.tryAgain}
             </button>
           </div>
         </div>
@@ -337,8 +339,8 @@ export default function RequestsPage() {
     <div className="space-y-4 sm:space-y-6 p-4 sm:p-0">
       <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4">
         <div>
-          <h1 className="text-xl sm:text-2xl font-bold text-gray-800">Replenishment Requests</h1>
-          <p className="text-xs sm:text-sm text-gray-600 mt-1">Approve and manage stock replenishment requests</p>
+          <h1 className="text-xl sm:text-2xl font-bold text-gray-800">{t.requests.title}</h1>
+          <p className="text-xs sm:text-sm text-gray-600 mt-1">{t.requests.subtitle}</p>
         </div>
         <button
           onClick={fetchRequests}
@@ -347,34 +349,34 @@ export default function RequestsPage() {
           <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
           </svg>
-          Refresh
+          {t.common.refresh}
         </button>
       </div>
 
       {/* Stats Cards */}
       <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3 sm:gap-4">
         <div className="bg-white rounded-lg shadow p-4 sm:p-6">
-          <div className="text-xs sm:text-sm text-gray-600">Total Requests</div>
+          <div className="text-xs sm:text-sm text-gray-600">{t.requests.totalRequests}</div>
           <div className="text-xl sm:text-2xl font-bold text-gray-900 mt-1 sm:mt-2">{stats.totalRequests}</div>
         </div>
         <div className="bg-yellow-50 rounded-lg shadow p-4 sm:p-6 border border-yellow-200">
-          <div className="text-xs sm:text-sm text-yellow-700 font-medium">Pending</div>
+          <div className="text-xs sm:text-sm text-yellow-700 font-medium">{t.requests.pendingRequests}</div>
           <div className="text-xl sm:text-2xl font-bold text-yellow-700 mt-1 sm:mt-2">{stats.pendingRequests}</div>
         </div>
         <div className="bg-blue-50 rounded-lg shadow p-4 sm:p-6 border border-blue-200">
-          <div className="text-xs sm:text-sm text-blue-700">Approved</div>
+          <div className="text-xs sm:text-sm text-blue-700">{t.requests.approvedRequests}</div>
           <div className="text-xl sm:text-2xl font-bold text-blue-700 mt-1 sm:mt-2">{stats.approvedRequests}</div>
         </div>
         <div className="bg-purple-50 rounded-lg shadow p-4 sm:p-6 border border-purple-200">
-          <div className="text-xs sm:text-sm text-purple-700">Ordered</div>
+          <div className="text-xs sm:text-sm text-purple-700">{t.common.ordered}</div>
           <div className="text-xl sm:text-2xl font-bold text-purple-700 mt-1 sm:mt-2">{orderedCount}</div>
         </div>
         <div className="bg-green-50 rounded-lg shadow p-4 sm:p-6 border border-green-200">
-          <div className="text-xs sm:text-sm text-green-700">Completed</div>
+          <div className="text-xs sm:text-sm text-green-700">{t.requests.completedRequests}</div>
           <div className="text-xl sm:text-2xl font-bold text-green-700 mt-1 sm:mt-2">{stats.completedRequests}</div>
         </div>
         <div className="bg-red-50 rounded-lg shadow p-4 sm:p-6 border border-red-200">
-          <div className="text-xs sm:text-sm text-red-700">Urgent</div>
+          <div className="text-xs sm:text-sm text-red-700">{t.requests.priorityUrgent}</div>
           <div className="text-xl sm:text-2xl font-bold text-red-700 mt-1 sm:mt-2">{urgentCount}</div>
         </div>
       </div>
@@ -384,7 +386,7 @@ export default function RequestsPage() {
         <div className="p-4 sm:p-6 border-b border-gray-200 space-y-3">
           <input
             type="text"
-            placeholder="Search requests..."
+            placeholder={t.requests.searchPlaceholder}
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
             className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-gray-500 text-sm"
@@ -394,13 +396,13 @@ export default function RequestsPage() {
               value={statusFilter}
               onChange={setStatusFilter}
               options={[
-                { value: 'PENDING', label: 'Pending' },
-                { value: 'APPROVED', label: 'Approved' },
-                { value: 'REJECTED', label: 'Rejected' },
-                { value: 'ORDERED', label: 'Ordered' },
-                { value: 'COMPLETED', label: 'Completed' },
+                { value: 'PENDING', label: t.common.pending },
+                { value: 'APPROVED', label: t.common.approved },
+                { value: 'REJECTED', label: t.common.rejected },
+                { value: 'ORDERED', label: t.common.ordered },
+                { value: 'COMPLETED', label: t.common.completed },
               ]}
-              placeholder="All Status"
+              placeholder={t.common.allStatus}
               searchable={false}
             />
             <CustomSelect
@@ -432,16 +434,16 @@ export default function RequestsPage() {
           <table className="w-full min-w-[900px]">
             <thead className="bg-gray-50">
               <tr>
-                <th className="px-3 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Request ID</th>
-                <th className="px-3 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Product</th>
-                <th className="px-3 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider hidden lg:table-cell">Location</th>
-                <th className="px-3 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider hidden xl:table-cell">Method</th>
-                <th className="px-3 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider hidden md:table-cell">Requested By</th>
-                <th className="px-3 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider hidden sm:table-cell">Qty</th>
-                <th className="px-3 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Priority</th>
-                <th className="px-3 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
-                <th className="px-3 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider hidden lg:table-cell">Date</th>
-                <th className="px-3 sm:px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
+                <th className="px-3 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">ID</th>
+                <th className="px-3 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">{t.requests.product}</th>
+                <th className="px-3 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider hidden lg:table-cell">{t.requests.location}</th>
+                <th className="px-3 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider hidden xl:table-cell">{t.requests.method}</th>
+                <th className="px-3 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider hidden md:table-cell">{t.requests.requestedBy}</th>
+                <th className="px-3 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider hidden sm:table-cell">{t.requests.qty}</th>
+                <th className="px-3 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">{t.requests.priority}</th>
+                <th className="px-3 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">{t.common.status}</th>
+                <th className="px-3 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider hidden lg:table-cell">{t.common.createdAt}</th>
+                <th className="px-3 sm:px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">{t.common.actions}</th>
               </tr>
             </thead>
             <tbody className="bg-white divide-y divide-gray-200">
@@ -449,8 +451,8 @@ export default function RequestsPage() {
                 <tr>
                   <td colSpan={10} className="px-3 sm:px-6 py-12 text-center text-gray-500 text-sm">
                     {searchTerm || statusFilter || priorityFilter || methodFilter
-                      ? 'No requests found matching your filters.'
-                      : 'No replenishment requests found. Requests will appear here when staff scans QR codes or presses E-ink buttons.'}
+                      ? t.common.noResults
+                      : t.requests.noRequests}
                   </td>
                 </tr>
               ) : (
@@ -498,27 +500,27 @@ export default function RequestsPage() {
                               onClick={() => handleUpdateStatus(request.id, 'APPROVED')}
                               className="px-2 sm:px-3 py-1 bg-green-100 text-green-700 hover:bg-green-200 border border-green-300 rounded-lg text-xs font-medium transition-colors whitespace-nowrap"
                             >
-                              Approve
+                              {t.requests.approve}
                             </button>
                             <button
                               onClick={() => {
-                                const reason = prompt('Enter rejection reason (optional):');
+                                const reason = prompt(t.requests.enterRejectionReason);
                                 handleUpdateStatus(request.id, 'REJECTED', reason || undefined);
                               }}
                               className="px-2 sm:px-3 py-1 bg-red-100 text-red-700 hover:bg-red-200 border border-red-300 rounded-lg text-xs font-medium transition-colors whitespace-nowrap"
                             >
-                              Reject
+                              {t.requests.reject}
                             </button>
                           </>
                         )}
                         {request.status === 'APPROVED' && (
                           <span className="px-2 sm:px-3 py-1 text-xs text-gray-500 text-left sm:text-right">
-                            Go to Orders to create order
+                            {t.orders.markAsSent}
                           </span>
                         )}
                         {request.status === 'ORDERED' && (
                           <span className="px-2 sm:px-3 py-1 text-xs text-purple-600 text-left sm:text-right">
-                            Waiting for delivery
+                            {t.orders.markAsInTransit}
                           </span>
                         )}
                         {request.status !== 'ORDERED' && request.status !== 'COMPLETED' && (
@@ -526,7 +528,7 @@ export default function RequestsPage() {
                             onClick={() => handleDelete(request.id)}
                             className="px-2 sm:px-3 py-1 bg-gray-100 text-gray-700 hover:bg-gray-200 border border-gray-300 rounded-lg text-xs font-medium transition-colors whitespace-nowrap"
                           >
-                            Delete
+                            {t.common.delete}
                           </button>
                         )}
                       </div>

@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { CustomSelect } from '@/components/ui/CustomSelect';
+import { useLanguage } from '@/contexts/LanguageContext';
 
 interface Supplier {
   id: number;
@@ -25,6 +26,7 @@ interface Stats {
 }
 
 export default function SuppliersPage() {
+  const { t } = useLanguage();
   const [suppliers, setSuppliers] = useState<Supplier[]>([]);
   const [stats, setStats] = useState<Stats>({
     totalSuppliers: 0,
@@ -121,7 +123,7 @@ export default function SuppliersPage() {
     e.preventDefault();
 
     if (!formData.name.trim()) {
-      setFormError('Supplier name is required');
+      setFormError(t.suppliers.nameRequired);
       return;
     }
 
@@ -265,7 +267,7 @@ export default function SuppliersPage() {
   if (loading) {
     return (
       <div className="flex items-center justify-center h-64">
-        <div className="text-gray-600">Loading suppliers...</div>
+        <div className="text-gray-600">{t.suppliers.loading}</div>
       </div>
     );
   }
@@ -280,13 +282,13 @@ export default function SuppliersPage() {
             </svg>
           </div>
           <div>
-            <h3 className="text-sm font-medium text-red-900">Error Loading Suppliers</h3>
+            <h3 className="text-sm font-medium text-red-900">{t.suppliers.errorLoading}</h3>
             <p className="text-sm text-red-700 mt-1">{error}</p>
             <button
               onClick={fetchSuppliers}
               className="mt-3 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors text-sm"
             >
-              Try Again
+              {t.common.tryAgain}
             </button>
           </div>
         </div>
@@ -298,34 +300,34 @@ export default function SuppliersPage() {
     <div className="space-y-6">
       <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4">
         <div>
-          <h1 className="text-2xl font-bold text-gray-800">Suppliers</h1>
-          <p className="text-sm text-gray-600 mt-1">Manage supplier information and contacts</p>
+          <h1 className="text-2xl font-bold text-gray-800">{t.suppliers.title}</h1>
+          <p className="text-sm text-gray-600 mt-1">{t.suppliers.subtitle}</p>
         </div>
         <button
           onClick={openCreateModal}
           className="px-4 py-2 bg-gray-900 text-white rounded-lg hover:bg-black transition-colors flex items-center justify-center gap-2 whitespace-nowrap"
         >
           <span>+</span>
-          <span>Add Supplier</span>
+          <span>{t.suppliers.addSupplier}</span>
         </button>
       </div>
 
       {/* Stats Cards */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
         <div className="bg-white rounded-lg shadow p-4 sm:p-6">
-          <div className="text-xs sm:text-sm text-gray-600">Total Suppliers</div>
+          <div className="text-xs sm:text-sm text-gray-600">{t.suppliers.totalSuppliers}</div>
           <div className="text-xl sm:text-2xl font-bold text-gray-900 mt-1 sm:mt-2">{stats.totalSuppliers}</div>
         </div>
         <div className="bg-white rounded-lg shadow p-4 sm:p-6">
-          <div className="text-xs sm:text-sm text-gray-600">Active</div>
+          <div className="text-xs sm:text-sm text-gray-600">{t.common.active}</div>
           <div className="text-xl sm:text-2xl font-bold text-green-600 mt-1 sm:mt-2">{stats.activeSuppliers}</div>
         </div>
         <div className="bg-white rounded-lg shadow p-4 sm:p-6">
-          <div className="text-xs sm:text-sm text-gray-600">Pending Orders</div>
+          <div className="text-xs sm:text-sm text-gray-600">{t.suppliers.pendingOrders}</div>
           <div className="text-xl sm:text-2xl font-bold text-yellow-600 mt-1 sm:mt-2">{stats.pendingOrders}</div>
         </div>
         <div className="bg-white rounded-lg shadow p-4 sm:p-6">
-          <div className="text-xs sm:text-sm text-gray-600">Total Products</div>
+          <div className="text-xs sm:text-sm text-gray-600">{t.suppliers.productsSupplied}</div>
           <div className="text-xl sm:text-2xl font-bold text-gray-900 mt-1 sm:mt-2">{stats.totalProducts}</div>
         </div>
       </div>
@@ -335,7 +337,7 @@ export default function SuppliersPage() {
         <div className="p-4 sm:p-6 border-b border-gray-200 flex flex-col sm:flex-row gap-3 sm:gap-4">
           <input
             type="text"
-            placeholder="Search suppliers..."
+            placeholder={t.suppliers.searchPlaceholder}
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
             className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-gray-500 text-sm"
@@ -344,10 +346,10 @@ export default function SuppliersPage() {
             value={statusFilter}
             onChange={setStatusFilter}
             options={[
-              { value: 'active', label: 'Active' },
-              { value: 'inactive', label: 'Inactive' },
+              { value: 'active', label: t.common.active },
+              { value: 'inactive', label: t.common.inactive },
             ]}
-            placeholder="All Status"
+            placeholder={t.common.allStatus}
             searchable={false}
             className="w-full sm:w-48"
           />
@@ -358,8 +360,8 @@ export default function SuppliersPage() {
           {filteredSuppliers.length === 0 ? (
             <div className="px-4 py-12 text-center text-gray-500 text-sm">
               {searchTerm || statusFilter
-                ? 'No suppliers found matching your filters.'
-                : 'No suppliers found. Click "Add Supplier" to create one.'}
+                ? t.common.noResults
+                : t.suppliers.noSuppliers}
             </div>
           ) : (
             filteredSuppliers.map((supplier) => (
@@ -374,15 +376,15 @@ export default function SuppliersPage() {
                     <div className="flex items-start justify-between mb-2">
                       <div>
                         <div className="text-sm font-medium text-gray-900">{supplier.name}</div>
-                        <div className="text-xs text-gray-500">{supplier.productCount} products</div>
+                        <div className="text-xs text-gray-500">{supplier.productCount} {t.suppliers.products}</div>
                       </div>
                       {supplier.isActive === 1 ? (
                         <span className="px-2 py-1 text-xs font-semibold rounded-full bg-green-100 text-green-800 border border-green-200 whitespace-nowrap ml-2">
-                          Active
+                          {t.common.active}
                         </span>
                       ) : (
                         <span className="px-2 py-1 text-xs font-semibold rounded-full bg-gray-100 text-gray-800 border border-gray-200 whitespace-nowrap ml-2">
-                          Inactive
+                          {t.common.inactive}
                         </span>
                       )}
                     </div>
@@ -417,7 +419,7 @@ export default function SuppliersPage() {
                         onClick={() => openEditModal(supplier)}
                         className="px-2 py-1 bg-gray-100 text-gray-700 hover:bg-gray-200 border border-gray-300 rounded text-xs font-medium"
                       >
-                        Edit
+                        {t.common.edit}
                       </button>
                       <button
                         onClick={() => handleToggleStatus(supplier)}
@@ -427,13 +429,13 @@ export default function SuppliersPage() {
                             : 'bg-green-100 text-green-700 hover:bg-green-200 border border-green-300'
                         }`}
                       >
-                        {supplier.isActive === 1 ? 'Deactivate' : 'Activate'}
+                        {supplier.isActive === 1 ? t.suppliers.deactivate : t.suppliers.activate}
                       </button>
                       <button
                         onClick={() => handleDelete(supplier)}
                         className="px-2 py-1 bg-red-100 text-red-700 hover:bg-red-200 border border-red-300 rounded text-xs font-medium"
                       >
-                        Delete
+                        {t.common.delete}
                       </button>
                     </div>
                   </div>
@@ -448,12 +450,12 @@ export default function SuppliersPage() {
           <table className="w-full">
             <thead className="bg-gray-50">
               <tr>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Supplier Name</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Contact Person</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Phone</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Email</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
-                <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">{t.suppliers.companyName}</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">{t.suppliers.contactName}</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">{t.suppliers.phone}</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">{t.suppliers.email}</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">{t.common.status}</th>
+                <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">{t.common.actions}</th>
               </tr>
             </thead>
             <tbody className="bg-white divide-y divide-gray-200">
@@ -461,8 +463,8 @@ export default function SuppliersPage() {
                 <tr>
                   <td colSpan={6} className="px-6 py-12 text-center text-gray-500">
                     {searchTerm || statusFilter
-                      ? 'No suppliers found matching your filters.'
-                      : 'No suppliers found. Click "Add Supplier" to create one.'}
+                      ? t.common.noResults
+                      : t.suppliers.noSuppliers}
                   </td>
                 </tr>
               ) : (
@@ -477,7 +479,7 @@ export default function SuppliersPage() {
                         </div>
                         <div className="ml-4">
                           <div className="text-sm font-medium text-gray-900">{supplier.name}</div>
-                          <div className="text-xs text-gray-500">{supplier.productCount} products</div>
+                          <div className="text-xs text-gray-500">{supplier.productCount} {t.suppliers.products}</div>
                         </div>
                       </div>
                     </td>
@@ -493,11 +495,11 @@ export default function SuppliersPage() {
                     <td className="px-6 py-4 whitespace-nowrap">
                       {supplier.isActive === 1 ? (
                         <span className="px-3 py-1 inline-flex text-xs leading-5 font-semibold rounded-full bg-green-100 text-green-800 border border-green-200">
-                          Active
+                          {t.common.active}
                         </span>
                       ) : (
                         <span className="px-3 py-1 inline-flex text-xs leading-5 font-semibold rounded-full bg-gray-100 text-gray-800 border border-gray-200">
-                          Inactive
+                          {t.common.inactive}
                         </span>
                       )}
                     </td>
@@ -507,7 +509,7 @@ export default function SuppliersPage() {
                           onClick={() => openEditModal(supplier)}
                           className="px-3 py-1 bg-gray-100 text-gray-700 hover:bg-gray-200 border border-gray-300 rounded-lg text-xs font-medium transition-colors"
                         >
-                          Edit
+                          {t.common.edit}
                         </button>
                         <button
                           onClick={() => handleToggleStatus(supplier)}
@@ -517,13 +519,13 @@ export default function SuppliersPage() {
                               : 'bg-green-100 text-green-700 hover:bg-green-200 border border-green-300'
                           }`}
                         >
-                          {supplier.isActive === 1 ? 'Deactivate' : 'Activate'}
+                          {supplier.isActive === 1 ? t.suppliers.deactivate : t.suppliers.activate}
                         </button>
                         <button
                           onClick={() => handleDelete(supplier)}
                           className="px-3 py-1 bg-red-100 text-red-700 hover:bg-red-200 border border-red-300 rounded-lg text-xs font-medium transition-colors"
                         >
-                          Delete
+                          {t.common.delete}
                         </button>
                       </div>
                     </td>
@@ -551,7 +553,7 @@ export default function SuppliersPage() {
                     </div>
                     <div className="mt-3 text-center sm:ml-4 sm:mt-0 sm:text-left w-full">
                       <h3 className="text-base sm:text-lg font-semibold leading-6 text-gray-900">
-                        {editingSupplier ? 'Edit Supplier' : 'Add New Supplier'}
+                        {editingSupplier ? t.suppliers.editSupplier : t.suppliers.addSupplier}
                       </h3>
                       <div className="mt-4 space-y-4">
                         {formError && (
@@ -561,7 +563,7 @@ export default function SuppliersPage() {
                         )}
                         <div>
                           <label htmlFor="name" className="block text-sm font-medium text-gray-700">
-                            Supplier Name <span className="text-red-500">*</span>
+                            {t.suppliers.companyName}
                           </label>
                           <input
                             type="text"
@@ -575,7 +577,7 @@ export default function SuppliersPage() {
                         </div>
                         <div>
                           <label htmlFor="contactName" className="block text-sm font-medium text-gray-700">
-                            Contact Person
+                            {t.suppliers.contactName}
                           </label>
                           <input
                             type="text"
@@ -589,7 +591,7 @@ export default function SuppliersPage() {
                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                           <div>
                             <label htmlFor="phone" className="block text-sm font-medium text-gray-700">
-                              Phone
+                              {t.suppliers.phone}
                             </label>
                             <input
                               type="tel"
@@ -602,7 +604,7 @@ export default function SuppliersPage() {
                           </div>
                           <div>
                             <label htmlFor="email" className="block text-sm font-medium text-gray-700">
-                              Email
+                              {t.suppliers.email}
                             </label>
                             <input
                               type="email"
@@ -616,7 +618,7 @@ export default function SuppliersPage() {
                         </div>
                         <div>
                           <label htmlFor="address" className="block text-sm font-medium text-gray-700">
-                            Address
+                            {t.suppliers.address}
                           </label>
                           <textarea
                             id="address"
@@ -637,7 +639,7 @@ export default function SuppliersPage() {
                     disabled={submitting}
                     className="inline-flex w-full justify-center rounded-lg bg-gray-900 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-black disabled:bg-gray-400 sm:w-auto"
                   >
-                    {submitting ? 'Saving...' : editingSupplier ? 'Save Changes' : 'Create Supplier'}
+                    {submitting ? t.common.saving : editingSupplier ? t.common.save : t.suppliers.addSupplier}
                   </button>
                   <button
                     type="button"
@@ -645,7 +647,7 @@ export default function SuppliersPage() {
                     disabled={submitting}
                     className="mt-3 sm:mt-0 inline-flex w-full justify-center rounded-lg bg-white px-4 py-2 text-sm font-semibold text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 hover:bg-gray-50 sm:w-auto"
                   >
-                    Cancel
+                    {t.common.cancel}
                   </button>
                 </div>
               </form>

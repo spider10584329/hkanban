@@ -3,76 +3,35 @@
 import { useEffect, useState } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
 import { useToast } from '@/components/ui/ToastProvider';
+import { useLanguage } from '@/contexts/LanguageContext';
+import { LanguageToggle } from '@/components/ui/LanguageToggle';
 
-// Navigation menu items configuration
-const menuItems = [
-  {
-    id: 'dashboard',
-    label: 'Dashboard',
-    path: '/admin',
-    icon: '/svg/dashboard.svg',
-  },
-  {
-    id: 'categories',
-    label: 'Categories',
-    path: '/admin/categories',
-    icon: '/svg/file.svg',
-  },
-  {
-    id: 'suppliers',
-    label: 'Suppliers',
-    path: '/admin/suppliers',
-    icon: '/svg/support.svg',
-  },
-  {
-    id: 'devices',
-    label: 'Devices',
-    path: '/admin/devices',
-    icon: '/svg/hardware.svg',
-  },
-  {
-    id: 'products',
-    label: 'Products',
-    path: '/admin/products',
-    icon: '/svg/product.svg',
-  },
-  {
-    id: 'requests',
-    label: 'Requests',
-    path: '/admin/requests',
-    icon: '/svg/notification.svg',
-  },
-  {
-    id: 'orders',
-    label: 'Orders',
-    path: '/admin/orders',
-    icon: '/svg/inventory.svg',
-  },
-  
-  {
-    id: 'apikey',
-    label: 'API Key',
-    path: '/admin/apikey',
-    icon: '/svg/key.svg',
-  },
-
-  {
-    id: 'users',
-    label: 'Users',
-    path: '/admin/users',
-    icon: '/svg/users.svg',
-  },
- 
-];
+// Navigation menu items are now built dynamically using translations
+function getMenuItems(nav: { dashboard: string; categories: string; suppliers: string; devices: string; products: string; requests: string; orders: string; apiKey: string; users: string }) {
+  return [
+    { id: 'dashboard', label: nav.dashboard, path: '/admin', icon: '/svg/dashboard.svg' },
+    { id: 'categories', label: nav.categories, path: '/admin/categories', icon: '/svg/file.svg' },
+    { id: 'suppliers', label: nav.suppliers, path: '/admin/suppliers', icon: '/svg/support.svg' },
+    { id: 'devices', label: nav.devices, path: '/admin/devices', icon: '/svg/hardware.svg' },
+    { id: 'products', label: nav.products, path: '/admin/products', icon: '/svg/product.svg' },
+    { id: 'requests', label: nav.requests, path: '/admin/requests', icon: '/svg/notification.svg' },
+    { id: 'orders', label: nav.orders, path: '/admin/orders', icon: '/svg/inventory.svg' },
+    { id: 'apikey', label: nav.apiKey, path: '/admin/apikey', icon: '/svg/key.svg' },
+    { id: 'users', label: nav.users, path: '/admin/users', icon: '/svg/users.svg' },
+  ];
+}
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
   const router = useRouter();
   const pathname = usePathname();
   const { showToast } = useToast();
+  const { t } = useLanguage();
   const [user, setUser] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [sidebarOpen, setSidebarOpen] = useState(false); // Start collapsed
   const [dropdownOpen, setDropdownOpen] = useState(false);
+
+  const menuItems = getMenuItems(t.adminNav);
 
   useEffect(() => {
     // Check screen size and set initial sidebar state
@@ -128,10 +87,10 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
         <div className="text-center">
           <img 
             src="/svg/6-dots-spinner.svg" 
-            alt="Loading..." 
+            alt={t.common.loading}
             className="w-16 h-16 mx-auto"
           />
-          <p className="mt-4 text-gray-600">Loading...</p>
+          <p className="mt-4 text-gray-600">{t.common.loading}</p>
         </div>
       </div>
     );
@@ -201,7 +160,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
               <button
                 onClick={() => setSidebarOpen(!sidebarOpen)}
                 className="p-2 rounded-lg hover:bg-gray-100 transition-colors"
-                aria-label="Toggle Sidebar"
+                aria-label={t.layout.toggleSidebar}
               >
                 <svg 
                   className="w-6 h-6 text-gray-700" 
@@ -219,6 +178,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
               </button>
             </div>
             <div className="flex items-center space-x-4">
+              <LanguageToggle />
               <div className="relative">
                 <button
                   onClick={() => setDropdownOpen(!dropdownOpen)}
@@ -231,7 +191,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
                         className="w-9 h-9 opacity-70"
                     />
                   </div>
-                  <span className="text-sm font-medium text-gray-800">Admin</span>
+                  <span className="text-sm font-medium text-gray-800">{t.layout.admin}</span>
                   <svg className={`w-4 h-4 text-gray-600 transition-transform ${dropdownOpen ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
                   </svg>
@@ -253,7 +213,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
                             alt='user-icon'
                             className="w-6 h-6 mr-3 opacity-60"
                         />
-                        <span>Logout</span>
+                        <span>{t.layout.logout}</span>
                       </button>
                     </div>
                   </>

@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
+import { useLanguage } from '@/contexts/LanguageContext';
 
 // Helper function to decode JWT token
 function decodeToken(token: string) {
@@ -57,6 +58,7 @@ interface DashboardData {
 }
 
 export default function AgentPage() {
+  const { t } = useLanguage();
   const router = useRouter();
   const [user, setUser] = useState<{ username?: string; manager_id?: number } | null>(null);
   const [agentId, setAgentId] = useState<number | null>(null);
@@ -175,7 +177,7 @@ export default function AgentPage() {
   if (loading) {
     return (
       <div className="flex items-center justify-center h-64">
-        <div className="text-gray-600">Loading dashboard...</div>
+        <div className="text-gray-600">{t.agentDashboard.loadingDashboard}</div>
       </div>
     );
   }
@@ -190,13 +192,13 @@ export default function AgentPage() {
             </svg>
           </div>
           <div>
-            <h3 className="text-sm font-medium text-red-900">Error Loading Dashboard</h3>
+            <h3 className="text-sm font-medium text-red-900">{t.agentDashboard.errorLoadingDashboard}</h3>
             <p className="text-sm text-red-700 mt-1">{error}</p>
             <button
               onClick={fetchDashboardData}
               className="mt-3 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors text-sm"
             >
-              Try Again
+              {t.common.tryAgain}
             </button>
           </div>
         </div>
@@ -229,9 +231,9 @@ export default function AgentPage() {
     <div className="space-y-6">
       {/* Header */}
       <div>
-        <h1 className="text-2xl font-bold text-gray-800">Dashboard</h1>
+        <h1 className="text-2xl font-bold text-gray-800">{t.agentDashboard.title}</h1>
         <p className="text-sm text-gray-600 mt-1">
-          Welcome back{user?.username ? `, ${user.username}` : ''}! Here&apos;s your request overview.
+          {t.agentDashboard.welcomeBack}{user?.username ? `, ${user.username}` : ''}! {t.agentDashboard.requestOverview}
         </p>
       </div>
 
@@ -243,7 +245,7 @@ export default function AgentPage() {
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
             </svg>
             <span className="text-sm text-yellow-700">
-              You have <strong>{urgentPending}</strong> high priority request{urgentPending !== 1 ? 's' : ''} awaiting approval
+              {t.agentDashboard.highPriorityAlert} <strong>{urgentPending}</strong> {urgentPending !== 1 ? t.agentDashboard.highPriorityAlertSuffixPlural : t.agentDashboard.highPriorityAlertSuffix}
             </span>
           </div>
         </div>
@@ -252,34 +254,34 @@ export default function AgentPage() {
       {/* Stats Cards */}
       <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
         <div className="bg-white rounded-lg shadow p-4 border-l-4 border-gray-400">
-          <div className="text-xs text-gray-500 uppercase tracking-wide">Total</div>
+          <div className="text-xs text-gray-500 uppercase tracking-wide">{t.agentDashboard.total}</div>
           <div className="text-2xl font-bold text-gray-900 mt-1">{stats.totalRequests}</div>
-          <div className="text-xs text-gray-500 mt-1">all requests</div>
+          <div className="text-xs text-gray-500 mt-1">{t.agentDashboard.allRequests}</div>
         </div>
         <div className="bg-white rounded-lg shadow p-4 border-l-4 border-yellow-500">
-          <div className="text-xs text-gray-500 uppercase tracking-wide">Pending</div>
+          <div className="text-xs text-gray-500 uppercase tracking-wide">{t.common.pending}</div>
           <div className="text-2xl font-bold text-yellow-600 mt-1">{stats.pendingRequests}</div>
-          <div className="text-xs text-gray-500 mt-1">awaiting review</div>
+          <div className="text-xs text-gray-500 mt-1">{t.agentDashboard.awaitingReview}</div>
         </div>
         <div className="bg-white rounded-lg shadow p-4 border-l-4 border-blue-500">
-          <div className="text-xs text-gray-500 uppercase tracking-wide">Approved</div>
+          <div className="text-xs text-gray-500 uppercase tracking-wide">{t.common.approved}</div>
           <div className="text-2xl font-bold text-blue-600 mt-1">{stats.approvedRequests}</div>
-          <div className="text-xs text-gray-500 mt-1">ready to order</div>
+          <div className="text-xs text-gray-500 mt-1">{t.agentDashboard.readyToOrder}</div>
         </div>
         <div className="bg-white rounded-lg shadow p-4 border-l-4 border-purple-500">
-          <div className="text-xs text-gray-500 uppercase tracking-wide">Ordered</div>
+          <div className="text-xs text-gray-500 uppercase tracking-wide">{t.common.ordered}</div>
           <div className="text-2xl font-bold text-purple-600 mt-1">{orderedRequests}</div>
-          <div className="text-xs text-gray-500 mt-1">in progress</div>
+          <div className="text-xs text-gray-500 mt-1">{t.agentDashboard.inProgress}</div>
         </div>
         <div className="bg-white rounded-lg shadow p-4 border-l-4 border-green-500">
-          <div className="text-xs text-gray-500 uppercase tracking-wide">Completed</div>
+          <div className="text-xs text-gray-500 uppercase tracking-wide">{t.common.completed}</div>
           <div className="text-2xl font-bold text-green-600 mt-1">{stats.completedRequests}</div>
-          <div className="text-xs text-gray-500 mt-1">fulfilled</div>
+          <div className="text-xs text-gray-500 mt-1">{t.agentDashboard.fulfilled}</div>
         </div>
         <div className="bg-white rounded-lg shadow p-4 border-l-4 border-red-500">
-          <div className="text-xs text-gray-500 uppercase tracking-wide">Rejected</div>
+          <div className="text-xs text-gray-500 uppercase tracking-wide">{t.common.rejected}</div>
           <div className="text-2xl font-bold text-red-600 mt-1">{stats.rejectedRequests}</div>
-          <div className="text-xs text-gray-500 mt-1">declined</div>
+          <div className="text-xs text-gray-500 mt-1">{t.agentDashboard.declined}</div>
         </div>
       </div>
 
@@ -287,27 +289,27 @@ export default function AgentPage() {
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Request Status Distribution */}
         <div className="lg:col-span-2 bg-white rounded-lg shadow p-4 sm:p-6">
-          <h3 className="text-sm font-semibold text-gray-700 uppercase tracking-wide mb-4">Request Status Overview</h3>
+          <h3 className="text-sm font-semibold text-gray-700 uppercase tracking-wide mb-4">{t.agentDashboard.requestStatusOverview}</h3>
           <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-2 sm:gap-3">
             <div className="text-center p-2 sm:p-3 bg-yellow-50 rounded-lg border border-yellow-200">
               <div className="text-lg sm:text-xl font-bold text-yellow-700">{stats.pendingRequests}</div>
-              <div className="text-xs text-yellow-600 mt-1">Pending</div>
+              <div className="text-xs text-yellow-600 mt-1">{t.common.pending}</div>
             </div>
             <div className="text-center p-2 sm:p-3 bg-blue-50 rounded-lg border border-blue-200">
               <div className="text-lg sm:text-xl font-bold text-blue-700">{stats.approvedRequests}</div>
-              <div className="text-xs text-blue-600 mt-1">Approved</div>
+              <div className="text-xs text-blue-600 mt-1">{t.common.approved}</div>
             </div>
             <div className="text-center p-2 sm:p-3 bg-purple-50 rounded-lg border border-purple-200">
               <div className="text-lg sm:text-xl font-bold text-purple-700">{orderedRequests}</div>
-              <div className="text-xs text-purple-600 mt-1">Ordered</div>
+              <div className="text-xs text-purple-600 mt-1">{t.common.ordered}</div>
             </div>
             <div className="text-center p-2 sm:p-3 bg-green-50 rounded-lg border border-green-200">
               <div className="text-lg sm:text-xl font-bold text-green-700">{stats.completedRequests}</div>
-              <div className="text-xs text-green-600 mt-1">Completed</div>
+              <div className="text-xs text-green-600 mt-1">{t.common.completed}</div>
             </div>
             <div className="text-center p-2 sm:p-3 bg-red-50 rounded-lg border border-red-200">
               <div className="text-lg sm:text-xl font-bold text-red-700">{stats.rejectedRequests}</div>
-              <div className="text-xs text-red-600 mt-1">Rejected</div>
+              <div className="text-xs text-red-600 mt-1">{t.common.rejected}</div>
             </div>
           </div>
         </div>
@@ -316,9 +318,9 @@ export default function AgentPage() {
         <div className="bg-gradient-to-br from-blue-500 to-blue-600 rounded-lg shadow p-4 sm:p-6 text-white">
           <div className="flex items-center justify-between">
             <div>
-              <div className="text-xs text-blue-100 uppercase tracking-wide">This Week</div>
+              <div className="text-xs text-blue-100 uppercase tracking-wide">{t.agentDashboard.thisWeek}</div>
               <div className="text-3xl font-bold mt-1">{thisWeekRequests}</div>
-              <div className="text-sm text-blue-100 mt-2">requests submitted</div>
+              <div className="text-sm text-blue-100 mt-2">{t.agentDashboard.requestsSubmitted}</div>
             </div>
             <svg className="w-12 h-12 text-blue-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4" />
@@ -332,12 +334,12 @@ export default function AgentPage() {
         {/* Recent Requests */}
         <div className="lg:col-span-2 bg-white rounded-lg shadow overflow-hidden">
           <div className="px-4 sm:px-6 py-4 border-b border-gray-200 flex justify-between items-center">
-            <h3 className="text-sm font-semibold text-gray-700 uppercase tracking-wide">Recent Requests</h3>
+            <h3 className="text-sm font-semibold text-gray-700 uppercase tracking-wide">{t.agentDashboard.recentRequests}</h3>
             <button
               onClick={() => router.push('/agent/my-requests')}
               className="text-xs text-blue-600 hover:text-blue-800"
             >
-              View all
+              {t.common.viewAll}
             </button>
           </div>
           <div className="divide-y divide-gray-100">
@@ -346,8 +348,8 @@ export default function AgentPage() {
                 <svg className="w-12 h-12 mx-auto text-gray-300 mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
                 </svg>
-                <p>No requests yet</p>
-                <p className="text-xs mt-1">Scan a QR code to submit your first request</p>
+                <p>{t.agentDashboard.noRequestsYet}</p>
+                <p className="text-xs mt-1">{t.agentDashboard.scanQrPrompt}</p>
               </div>
             ) : (
               recentRequests.map((request) => (
@@ -362,7 +364,7 @@ export default function AgentPage() {
                         </p>
                         {request.status === 'REJECTED' && request.rejectionReason && (
                           <p className="text-xs text-red-600 mt-1">
-                            Reason: {request.rejectionReason}
+                            {t.common.reason}: {request.rejectionReason}
                           </p>
                         )}
                       </div>
@@ -380,7 +382,7 @@ export default function AgentPage() {
 
         {/* Quick Actions */}
         <div className="bg-white rounded-lg shadow p-4 sm:p-6">
-          <h3 className="text-sm font-semibold text-gray-700 uppercase tracking-wide mb-4">Quick Actions</h3>
+          <h3 className="text-sm font-semibold text-gray-700 uppercase tracking-wide mb-4">{t.agentDashboard.quickActions}</h3>
           <div className="space-y-3">
             <button
               onClick={() => router.push('/agent/scan')}
@@ -392,8 +394,8 @@ export default function AgentPage() {
                 </svg>
               </div>
               <div className="text-left">
-                <span className="text-sm font-medium text-gray-700 group-hover:text-blue-700">Scan QR Code</span>
-                <p className="text-xs text-gray-500">Submit a new replenishment request</p>
+                <span className="text-sm font-medium text-gray-700 group-hover:text-blue-700">{t.agentDashboard.scanQrCode}</span>
+                <p className="text-xs text-gray-500">{t.agentDashboard.submitNewRequest}</p>
               </div>
             </button>
             <button
@@ -406,8 +408,8 @@ export default function AgentPage() {
                 </svg>
               </div>
               <div className="text-left">
-                <span className="text-sm font-medium text-gray-700">View All Requests</span>
-                <p className="text-xs text-gray-500">Track your submission history</p>
+                <span className="text-sm font-medium text-gray-700">{t.agentDashboard.viewAllRequests}</span>
+                <p className="text-xs text-gray-500">{t.agentDashboard.trackHistory}</p>
               </div>
             </button>
           </div>
@@ -416,7 +418,7 @@ export default function AgentPage() {
           {stats.totalRequests > 0 && (
             <div className="mt-6 pt-4 border-t border-gray-200">
               <div className="flex items-center justify-between text-sm mb-2">
-                <span className="text-gray-600">Success Rate</span>
+                <span className="text-gray-600">{t.agentDashboard.successRate}</span>
                 <span className="font-medium text-gray-900">
                   {Math.round(((stats.completedRequests + stats.approvedRequests + orderedRequests) / stats.totalRequests) * 100)}%
                 </span>
@@ -430,7 +432,7 @@ export default function AgentPage() {
                 ></div>
               </div>
               <p className="text-xs text-gray-500 mt-2">
-                {stats.completedRequests + stats.approvedRequests + orderedRequests} of {stats.totalRequests} requests approved or completed
+                {stats.completedRequests + stats.approvedRequests + orderedRequests} of {stats.totalRequests} {t.agentDashboard.ofRequestsApproved}
               </p>
             </div>
           )}

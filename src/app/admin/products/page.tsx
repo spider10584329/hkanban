@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useNotification } from '@/hooks/useNotification';
 import { CustomSelect } from '@/components/ui/CustomSelect';
+import { useLanguage } from '@/contexts/LanguageContext';
 
 interface Product {
   id: number;
@@ -96,6 +97,7 @@ interface Stats {
 }
 
 export default function ProductsPage() {
+  const { t } = useLanguage();
   const notification = useNotification();
   const [products, setProducts] = useState<Product[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
@@ -353,15 +355,15 @@ export default function ProductsPage() {
     e.preventDefault();
 
     if (!formData.name.trim()) {
-      setFormError('Product name is required');
+      setFormError(t.products.nameRequired);
       return;
     }
     if (!formData.categoryId) {
-      setFormError('Category is required');
+      setFormError(t.products.categoryRequired);
       return;
     }
     if (!formData.location.trim()) {
-      setFormError('Location is required');
+      setFormError(t.products.locationRequired);
       return;
     }
 
@@ -464,7 +466,7 @@ export default function ProductsPage() {
   };
 
   const handleDelete = async (product: Product) => {
-    if (!confirm(`Are you sure you want to delete "${product.name}"? This action cannot be undone.`)) {
+    if (!confirm(t.products.confirmDelete)) {
       return;
     }
 
@@ -649,7 +651,7 @@ export default function ProductsPage() {
   if (loading) {
     return (
       <div className="flex items-center justify-center h-64">
-        <div className="text-gray-600">Loading products...</div>
+        <div className="text-gray-600">{t.products.loading}</div>
       </div>
     );
   }
@@ -664,13 +666,13 @@ export default function ProductsPage() {
             </svg>
           </div>
           <div>
-            <h3 className="text-sm font-medium text-red-900">Error Loading Products</h3>
+            <h3 className="text-sm font-medium text-red-900">{t.products.errorLoading}</h3>
             <p className="text-sm text-red-700 mt-1">{error}</p>
             <button
               onClick={fetchProducts}
               className="mt-3 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors text-sm"
             >
-              Try Again
+              {t.common.tryAgain}
             </button>
           </div>
         </div>
@@ -682,38 +684,38 @@ export default function ProductsPage() {
     <div className="space-y-4 sm:space-y-6 p-4 sm:p-0">
       <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4">
         <div>
-          <h1 className="text-xl sm:text-2xl font-bold text-gray-800">Products</h1>
-          <p className="text-xs sm:text-sm text-gray-600 mt-1">Manage products with QR codes and E-ink devices</p>
+          <h1 className="text-xl sm:text-2xl font-bold text-gray-800">{t.products.title}</h1>
+          <p className="text-xs sm:text-sm text-gray-600 mt-1">{t.products.subtitle}</p>
         </div>
         <button
           onClick={openCreateModal}
           className="px-4 py-2 bg-gray-900 text-white rounded-lg hover:bg-black transition-colors flex items-center justify-center gap-2 text-sm"
         >
           <span>+</span>
-          <span>Add Product</span>
+          <span>{t.products.addProduct}</span>
         </button>
       </div>
 
       {/* Stats Cards */}
       <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3 sm:gap-4">
         <div className="bg-white rounded-lg shadow p-4 sm:p-6">
-          <div className="text-xs sm:text-sm text-gray-600">Total Products</div>
+          <div className="text-xs sm:text-sm text-gray-600">{t.products.totalProducts}</div>
           <div className="text-xl sm:text-2xl font-bold text-gray-900 mt-1 sm:mt-2">{stats.totalProducts}</div>
         </div>
         <div className="bg-white rounded-lg shadow p-4 sm:p-6">
-          <div className="text-xs sm:text-sm text-gray-600">Active</div>
+          <div className="text-xs sm:text-sm text-gray-600">{t.products.activeProducts}</div>
           <div className="text-xl sm:text-2xl font-bold text-green-600 mt-1 sm:mt-2">{stats.activeProducts}</div>
         </div>
         <div className="bg-white rounded-lg shadow p-4 sm:p-6">
-          <div className="text-xs sm:text-sm text-gray-600">With QR Code</div>
+          <div className="text-xs sm:text-sm text-gray-600">{t.products.withQrCode}</div>
           <div className="text-xl sm:text-2xl font-bold text-blue-600 mt-1 sm:mt-2">{stats.withQrCode}</div>
         </div>
         <div className="bg-white rounded-lg shadow p-4 sm:p-6">
-          <div className="text-xs sm:text-sm text-gray-600">With E-ink</div>
+          <div className="text-xs sm:text-sm text-gray-600">{t.products.withEink}</div>
           <div className="text-xl sm:text-2xl font-bold text-purple-600 mt-1 sm:mt-2">{stats.withEink}</div>
         </div>
         <div className="bg-white rounded-lg shadow p-4 sm:p-6 col-span-2 sm:col-span-1">
-          <div className="text-xs sm:text-sm text-gray-600">Low Stock</div>
+          <div className="text-xs sm:text-sm text-gray-600">{t.products.lowStock}</div>
           <div className="text-xl sm:text-2xl font-bold text-red-600 mt-1 sm:mt-2">{stats.lowStock}</div>
         </div>
       </div>
@@ -723,7 +725,7 @@ export default function ProductsPage() {
         <div className="p-4 sm:p-6 border-b border-gray-200 space-y-3">
           <input
             type="text"
-            placeholder="Search products..."
+            placeholder={t.products.searchPlaceholder}
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
             className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-gray-500 text-sm"
@@ -733,7 +735,7 @@ export default function ProductsPage() {
               value={categoryFilter}
               onChange={setCategoryFilter}
               options={categories.map((c) => ({ value: String(c.id), label: c.name }))}
-              placeholder="All Categories"
+              placeholder={t.products.allCategories}
               className="flex-1"
             />
             <CustomSelect
@@ -744,7 +746,7 @@ export default function ProductsPage() {
                 { value: 'eink', label: 'E-ink Only' },
                 { value: 'both', label: 'Both' },
               ]}
-              placeholder="All Methods"
+              placeholder={t.products.allMethods}
               searchable={false}
               className="flex-1"
             />
@@ -754,13 +756,13 @@ export default function ProductsPage() {
           <table className="w-full min-w-[800px]">
             <thead className="bg-gray-50">
               <tr>
-                <th className="px-3 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Product</th>
-                <th className="px-3 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider hidden lg:table-cell">QR Code</th>
-                <th className="px-3 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider hidden xl:table-cell">ESL Device</th>
-                <th className="px-3 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Category</th>
-                <th className="px-3 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider hidden md:table-cell">Location</th>
-                <th className="px-3 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
-                <th className="px-3 sm:px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
+                <th className="px-3 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">{t.products.productName}</th>
+                <th className="px-3 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider hidden lg:table-cell">{t.products.qrCodeUrl}</th>
+                <th className="px-3 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider hidden xl:table-cell">{t.products.eslBinding}</th>
+                <th className="px-3 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">{t.products.category}</th>
+                <th className="px-3 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider hidden md:table-cell">{t.products.location}</th>
+                <th className="px-3 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">{t.common.status}</th>
+                <th className="px-3 sm:px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">{t.common.actions}</th>
               </tr>
             </thead>
             <tbody className="bg-white divide-y divide-gray-200">
@@ -768,8 +770,8 @@ export default function ProductsPage() {
                 <tr>
                   <td colSpan={7} className="px-3 sm:px-6 py-12 text-center text-gray-500 text-sm">
                     {searchTerm || categoryFilter || methodFilter
-                      ? 'No products found matching your filters.'
-                      : 'No products found. Click "Add Product" to create one.'}
+                      ? t.common.noResults
+                      : t.products.noProducts}
                   </td>
                 </tr>
               ) : (
@@ -809,13 +811,13 @@ export default function ProductsPage() {
                       {product.minewBoundLabel ? (
                         <div className="flex flex-col">
                           <span className="px-2 sm:px-3 py-1 inline-flex text-xs leading-5 font-semibold rounded-full bg-green-100 text-green-800 border border-green-200">
-                            Bound
+                            {t.common.bound}
                           </span>
                           <span className="text-xs text-gray-500 mt-1">{product.minewBoundLabel}</span>
                         </div>
                       ) : (
                         <span className="px-2 sm:px-3 py-1 inline-flex text-xs leading-5 font-semibold rounded-full bg-gray-100 text-gray-800 border border-gray-200">
-                          Unbound
+                          {t.common.unbound}
                         </span>
                       )}
                     </td>
@@ -825,28 +827,28 @@ export default function ProductsPage() {
                           onClick={() => openEditModal(product)}
                           className="px-2 sm:px-3 py-1 bg-gray-100 text-gray-700 hover:bg-gray-200 border border-gray-300 rounded-lg text-xs font-medium transition-colors"
                         >
-                          Edit
+                          {t.common.edit}
                         </button>
                         {product.minewBoundLabel ? (
                           <button
                             onClick={() => handleUnbind(product)}
                             className="px-2 sm:px-3 py-1 bg-orange-100 text-orange-700 hover:bg-orange-200 border border-orange-300 rounded-lg text-xs font-medium transition-colors"
                           >
-                            Unbind
+                            {t.products.unbindEslTag}
                           </button>
                         ) : (
                           <button
                             onClick={() => openBindingModal(product)}
                             className="px-2 sm:px-3 py-1 bg-blue-100 text-blue-700 hover:bg-blue-200 border border-blue-300 rounded-lg text-xs font-medium transition-colors"
                           >
-                            Bind ESL
+                            {t.products.bindEslTag}
                           </button>
                         )}
                         <button
                           onClick={() => handleDelete(product)}
                           className="px-2 sm:px-3 py-1 bg-red-100 text-red-700 hover:bg-red-200 border border-red-300 rounded-lg text-xs font-medium transition-colors"
                         >
-                          Delete
+                          {t.common.delete}
                         </button>
                       </div>
                     </td>
@@ -874,7 +876,7 @@ export default function ProductsPage() {
                     </div>
                     <div className="mt-3 text-center sm:ml-4 sm:mt-0 sm:text-left w-full">
                       <h3 className="text-base sm:text-lg font-semibold leading-6 text-gray-900">
-                        {editingProduct ? 'Edit Product' : 'Add New Product'}
+                        {editingProduct ? t.products.editProduct : t.products.addProduct}
                       </h3>
                       <div className="mt-4 space-y-4">
                         {formError && (
@@ -886,7 +888,7 @@ export default function ProductsPage() {
                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                           <div className="sm:col-span-2">
                             <label htmlFor="name" className="block text-xs sm:text-sm font-medium text-gray-700">
-                              Product Name <span className="text-red-500">*</span>
+                              {t.products.productName}
                             </label>
                             <input
                               type="text"
@@ -901,7 +903,7 @@ export default function ProductsPage() {
 
                           <div>
                             <label htmlFor="sku" className="block text-xs sm:text-sm font-medium text-gray-700">
-                              SKU
+                              {t.products.sku}
                             </label>
                             <input
                               type="text"
@@ -915,7 +917,7 @@ export default function ProductsPage() {
 
                           <div>
                             <label htmlFor="categoryId" className="block text-xs sm:text-sm font-medium text-gray-700">
-                              Category <span className="text-red-500">*</span>
+                              {t.products.category}
                             </label>
                             <CustomSelect
                               id="categoryId"
@@ -929,7 +931,7 @@ export default function ProductsPage() {
 
                           <div>
                             <label htmlFor="supplierId" className="block text-xs sm:text-sm font-medium text-gray-700">
-                              Supplier
+                              {t.products.supplier}
                             </label>
                             <CustomSelect
                               id="supplierId"
@@ -943,7 +945,7 @@ export default function ProductsPage() {
 
                           <div>
                             <label htmlFor="location" className="block text-xs sm:text-sm font-medium text-gray-700">
-                              Location <span className="text-red-500">*</span>
+                              {t.products.location}
                             </label>
                             <input
                               type="text"
@@ -959,7 +961,7 @@ export default function ProductsPage() {
 
                           <div>
                             <label htmlFor="unitPrice" className="block text-xs sm:text-sm font-medium text-gray-700">
-                              Unit Price
+                              {t.products.unitPrice}
                             </label>
                             <input
                               type="number"
@@ -975,7 +977,7 @@ export default function ProductsPage() {
 
                           <div className="sm:col-span-2">
                             <label htmlFor="description" className="block text-xs sm:text-sm font-medium text-gray-700">
-                              Description
+                              {t.common.description}
                             </label>
                             <textarea
                               id="description"
@@ -989,7 +991,7 @@ export default function ProductsPage() {
 
                           <div>
                             <label htmlFor="reorderThreshold" className="block text-xs sm:text-sm font-medium text-gray-700">
-                              Reorder Threshold
+                              {t.products.reorderThreshold}
                             </label>
                             <input
                               type="number"
@@ -1004,7 +1006,7 @@ export default function ProductsPage() {
 
                           <div>
                             <label htmlFor="standardOrderQty" className="block text-xs sm:text-sm font-medium text-gray-700">
-                              Standard Order Qty
+                              {t.products.standardOrderQty}
                             </label>
                             <input
                               type="number"
@@ -1028,7 +1030,7 @@ export default function ProductsPage() {
                     disabled={submitting}
                     className="inline-flex w-full justify-center rounded-lg bg-gray-900 px-4 py-2 text-xs sm:text-sm font-semibold text-white shadow-sm hover:bg-black disabled:bg-gray-400 sm:w-auto"
                   >
-                    {submitting ? 'Saving...' : editingProduct ? 'Save Changes' : 'Create Product'}
+                    {submitting ? t.common.saving : editingProduct ? t.common.save : t.products.addProduct}
                   </button>
                   <button
                     type="button"
@@ -1036,7 +1038,7 @@ export default function ProductsPage() {
                     disabled={submitting}
                     className="mt-2 sm:mt-0 inline-flex w-full justify-center rounded-lg bg-white px-4 py-2 text-xs sm:text-sm font-semibold text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 hover:bg-gray-50 sm:w-auto"
                   >
-                    Cancel
+                    {t.common.cancel}
                   </button>
                 </div>
               </form>
@@ -1132,7 +1134,7 @@ export default function ProductsPage() {
                   disabled={bindingLoading}
                   className="mt-2 sm:mt-0 inline-flex w-full justify-center rounded-lg bg-white px-4 py-2 text-xs sm:text-sm font-semibold text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 hover:bg-gray-50 sm:w-auto"
                 >
-                  Cancel
+                  {t.common.cancel}
                 </button>
               </div>
             </div>

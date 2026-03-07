@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useNotification } from '@/hooks/useNotification';
 import { CustomSelect } from '@/components/ui/CustomSelect';
+import { useLanguage } from '@/contexts/LanguageContext';
 
 interface Device {
   id: number;
@@ -35,6 +36,7 @@ interface Stats {
 }
 
 export default function DevicesPage() {
+  const { t } = useLanguage();
   const notification = useNotification();
   const [activeTab, setActiveTab] = useState<'store' | 'template' | 'gateway' | 'esl'>('esl');
   const [devices, setDevices] = useState<Device[]>([]);
@@ -995,7 +997,7 @@ export default function DevicesPage() {
   if (loading) {
     return (
       <div className="flex items-center justify-center h-64">
-        <div className="text-gray-600">Loading devices...</div>
+        <div className="text-gray-600">{t.devices.loading}</div>
       </div>
     );
   }
@@ -1010,13 +1012,13 @@ export default function DevicesPage() {
             </svg>
           </div>
           <div>
-            <h3 className="text-sm font-medium text-red-900">Error Loading Devices</h3>
+            <h3 className="text-sm font-medium text-red-900">{t.devices.errorLoading}</h3>
             <p className="text-sm text-red-700 mt-1">{error}</p>
             <button
               onClick={fetchDevices}
               className="mt-3 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors text-sm"
             >
-              Try Again
+              {t.common.tryAgain}
             </button>
           </div>
         </div>
@@ -1028,7 +1030,7 @@ export default function DevicesPage() {
     <div className="space-y-4 sm:space-y-6 p-4 sm:p-0">
       {/* Header */}
       <div>
-        <h1 className="text-xl sm:text-2xl font-bold text-gray-800">Minew ESL Devices</h1>
+        <h1 className="text-xl sm:text-2xl font-bold text-gray-800">{t.devices.title}</h1>
       </div>
 
       {/* Tab Navigation */}
@@ -1045,7 +1047,7 @@ export default function DevicesPage() {
                 : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
             }`}
           >
-            Store
+            {t.devices.tabStore}
           </button>
           <button
             onClick={() => {
@@ -1058,7 +1060,7 @@ export default function DevicesPage() {
                 : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
             }`}
           >
-            Template
+            {t.devices.tabTemplate}
           </button>
           <button
             onClick={() => {
@@ -1072,7 +1074,7 @@ export default function DevicesPage() {
                 : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
             }`}
           >
-            Gateway
+            {t.devices.tabGateway}
           </button>
           <button
             onClick={() => {
@@ -1085,7 +1087,7 @@ export default function DevicesPage() {
                 : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
             }`}
           >
-            ESL Label
+            {t.devices.tabEsl}
           </button>
         </nav>
       </div>
@@ -1115,13 +1117,13 @@ export default function DevicesPage() {
                   {storesLoading ? (
                     <tr>
                       <td colSpan={8} className="px-4 py-12 text-center text-gray-500 text-sm">
-                        Loading stores from Minew cloud...
+                        {t.devices.loadingStores}
                       </td>
                     </tr>
                   ) : minewStores.length === 0 ? (
                     <tr>
                       <td colSpan={8} className="px-4 py-12 text-center text-gray-500 text-sm">
-                        No stores found.
+                        {t.devices.noStores}
                       </td>
                     </tr>
                   ) : (
@@ -1178,7 +1180,7 @@ export default function DevicesPage() {
           <div className="bg-white rounded-lg shadow p-4 mb-4">
             <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4">
               <label htmlFor="template-store-select" className="text-sm font-medium text-gray-700 shrink-0">
-                Select Store:
+                {t.devices.selectStore}:
               </label>
               <CustomSelect
                 id="template-store-select"
@@ -1205,7 +1207,7 @@ export default function DevicesPage() {
                   <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
                   </svg>
-                  Refresh
+                  {t.common.refresh}
                 </button>
               )}
             </div>
@@ -1231,14 +1233,14 @@ export default function DevicesPage() {
                   {templatesLoading ? (
                     <tr>
                       <td colSpan={7} className="px-4 py-12 text-center text-gray-500 text-sm">
-                        Loading templates from Minew cloud...
+                        {t.devices.loadingTemplates}
                       </td>
                     </tr>
                   ) : templatesError ? (
                     <tr>
                       <td colSpan={7} className="px-4 py-12 text-center">
                         <div className="text-red-600 text-sm">
-                          <p className="font-medium">Error loading templates</p>
+                          <p className="font-medium">{t.devices.errorLoading}</p>
                           <p className="mt-1 text-xs">{templatesError}</p>
                           {!selectedStoreId && (
                             <p className="mt-2 text-gray-600">Please select a store from the Store tab first.</p>
@@ -1249,14 +1251,14 @@ export default function DevicesPage() {
                   ) : !selectedStoreId ? (
                     <tr>
                       <td colSpan={7} className="px-4 py-12 text-center text-gray-500 text-sm">
-                        <p>Please select a store to view templates.</p>
-                        <p className="mt-2 text-xs">Go to the Store tab and select a store first.</p>
+                        <p>{t.devices.pleaseSelectStore}</p>
+                        <p className="mt-2 text-xs">{t.devices.goToStoreTab}</p>
                       </td>
                     </tr>
                   ) : templates.length === 0 ? (
                     <tr>
                       <td colSpan={7} className="px-4 py-12 text-center text-gray-500 text-sm">
-                        No templates found for this store.
+                        {t.devices.noTemplates}
                       </td>
                     </tr>
                   ) : (
@@ -1322,7 +1324,7 @@ export default function DevicesPage() {
           <div className="bg-white rounded-lg shadow p-4 mb-4">
             <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4">
               <label htmlFor="gateway-store-select" className="text-sm font-medium text-gray-700 shrink-0">
-                Select Store:
+                {t.devices.selectStore}:
               </label>
               <CustomSelect
                 id="gateway-store-select"
@@ -1352,7 +1354,7 @@ export default function DevicesPage() {
                   <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
                   </svg>
-                  Refresh
+                  {t.common.refresh}
                 </button>
               )}
             </div>
@@ -1364,7 +1366,7 @@ export default function DevicesPage() {
               <div className="relative w-full sm:w-auto">
                 <input
                   type="text"
-                  placeholder="Search"
+                  placeholder={t.common.search}
                   className="w-full sm:w-auto pl-4 pr-10 py-2 border border-gray-300 rounded-lg text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
                 />
                 <svg className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -1383,7 +1385,7 @@ export default function DevicesPage() {
                 <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
                 </svg>
-                Add
+                {t.devices.addGateway}
               </button>
               
             </div>
@@ -1414,19 +1416,19 @@ export default function DevicesPage() {
                   {minewGatewaysLoading ? (
                     <tr>
                       <td colSpan={11} className="px-4 py-12 text-center text-gray-500 text-sm">
-                        Loading gateways from Minew cloud...
+                        {t.devices.loadingGateways}
                       </td>
                     </tr>
                   ) : !selectedStoreId ? (
                     <tr>
                       <td colSpan={11} className="px-4 py-12 text-center text-gray-500 text-sm">
-                        Please select a store to view gateways.
+                        {t.devices.pleaseSelectStore}
                       </td>
                     </tr>
                   ) : minewGateways.length === 0 ? (
                     <tr>
                       <td colSpan={11} className="px-4 py-12 text-center text-gray-500 text-sm">
-                        No gateways found in Minew cloud.
+                        {t.devices.noGateways}
                       </td>
                     </tr>
                   ) : (
@@ -1442,7 +1444,7 @@ export default function DevicesPage() {
                           <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${
                             gateway.mode === 1 ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800'
                           }`}>
-                            {gateway.mode === 1 ? 'Online' : 'Offline'}
+                            {gateway.mode === 1 ? t.devices.onlineStatus : t.devices.offlineStatus}
                           </span>
                         </td>
                         <td className="px-4 py-3 text-sm text-gray-700">
@@ -1516,7 +1518,7 @@ export default function DevicesPage() {
           <div className="bg-white rounded-lg shadow p-4 mb-4">
             <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4">
               <label htmlFor="esl-store-select" className="text-sm font-medium text-gray-700 shrink-0">
-                Select Store:
+                {t.devices.selectStore}:
               </label>
               <CustomSelect
                 id="esl-store-select"
@@ -1543,7 +1545,7 @@ export default function DevicesPage() {
                   <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
                   </svg>
-                  Refresh
+                  {t.common.refresh}
                 </button>
               )}
             </div>
@@ -1573,7 +1575,7 @@ export default function DevicesPage() {
                 <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
                 </svg>
-                Add
+                {t.devices.addEslLabel}
               </button>
             </div>
           </div>
@@ -1601,19 +1603,19 @@ export default function DevicesPage() {
                   {eslTagsLoading ? (
                     <tr>
                       <td colSpan={9} className="px-4 py-12 text-center text-gray-500 text-sm">
-                        Loading ESL tags from Minew cloud...
+                        {t.devices.loadingEslTags}
                       </td>
                     </tr>
                   ) : !selectedStoreId ? (
                     <tr>
                       <td colSpan={9} className="px-4 py-12 text-center text-gray-500 text-sm">
-                        Please select a store to view ESL tags.
+                        {t.devices.pleaseSelectStore}
                       </td>
                     </tr>
                   ) : eslTags.length === 0 ? (
                     <tr>
                       <td colSpan={9} className="px-4 py-12 text-center text-gray-500 text-sm">
-                        No ESL tags found in Minew cloud.
+                        {t.devices.noEslTags}
                       </td>
                     </tr>
                   ) : (
@@ -1661,13 +1663,13 @@ export default function DevicesPage() {
                         </td>
                         <td className="px-4 py-3">
                           {tag.isOnline === '2' ? (
-                            <span className="px-2 py-1 text-xs rounded bg-gray-100 text-gray-600">Online</span>
+                            <span className="px-2 py-1 text-xs rounded bg-gray-100 text-gray-600">{t.devices.onlineStatus}</span>
                           ) : (
-                            <span className="px-2 py-1 text-xs rounded bg-red-100 text-red-600">Offline</span>
+                            <span className="px-2 py-1 text-xs rounded bg-red-100 text-red-600">{t.devices.offlineStatus}</span>
                           )}
                         </td>
                         <td className="px-4 py-3 text-sm text-gray-700">
-                          {tag.bind === '1' ? 'Bound' : 'Unbound'}
+                          {tag.bind === '1' ? t.devices.boundStatus : t.devices.unboundStatus}
                         </td>
                         <td className="px-4 py-3">
                           <div className="flex items-center gap-2">
@@ -1744,7 +1746,7 @@ export default function DevicesPage() {
                     </div>
                     <div className="mt-3 text-center sm:ml-4 sm:mt-0 sm:text-left w-full">
                       <h3 className="text-base sm:text-lg font-semibold leading-6 text-gray-900">
-                        {editingDevice ? 'Edit Device' : 'Register New Device'}
+                        {editingDevice ? t.devices.editDevice : t.devices.registerDevice}
                       </h3>
                       <div className="mt-4 space-y-4">
                         {formError && (
@@ -1840,7 +1842,7 @@ export default function DevicesPage() {
                     disabled={submitting}
                     className="inline-flex w-full justify-center rounded-lg bg-gray-900 px-4 py-2 text-xs sm:text-sm font-semibold text-white shadow-sm hover:bg-black disabled:bg-gray-400 sm:w-auto"
                   >
-                    {submitting ? 'Saving...' : editingDevice ? 'Save Changes' : 'Register Device'}
+                    {submitting ? t.common.saving : editingDevice ? t.common.save : t.devices.registerDevice}
                   </button>
                   <button
                     type="button"
@@ -1848,7 +1850,7 @@ export default function DevicesPage() {
                     disabled={submitting}
                     className="mt-2 sm:mt-0 inline-flex w-full justify-center rounded-lg bg-white px-4 py-2 text-xs sm:text-sm font-semibold text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 hover:bg-gray-50 sm:w-auto"
                   >
-                    Cancel
+                    {t.common.cancel}
                   </button>
                 </div>
               </form>
@@ -1866,7 +1868,7 @@ export default function DevicesPage() {
               <form onSubmit={handleGatewaySubmit}>
                 <div className="bg-white px-6 pt-5 pb-4">
                   <div className="flex items-center justify-between mb-4">
-                    <h3 className="text-lg font-medium text-gray-900">Add</h3>
+                    <h3 className="text-lg font-medium text-gray-900">{t.devices.addGateway}</h3>
                     <button
                       type="button"
                       onClick={closeGatewayModal}
@@ -1921,14 +1923,14 @@ export default function DevicesPage() {
                     disabled={gatewaySubmitting}
                     className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded hover:bg-gray-50 disabled:opacity-50"
                   >
-                    Cancel
+                    {t.common.cancel}
                   </button>
                   <button
                     type="submit"
                     disabled={gatewaySubmitting}
                     className="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded hover:bg-blue-700 disabled:opacity-50"
                   >
-                    {gatewaySubmitting ? 'Confirming...' : 'Confirm'}
+                    {gatewaySubmitting ? t.devices.confirming : t.common.confirm}
                   </button>
                 </div>
               </form>
@@ -1950,7 +1952,7 @@ export default function DevicesPage() {
           <div className="relative bg-white rounded-lg shadow-xl max-w-md w-full mx-4 transform transition-all">
             {/* Header */}
             <div className="flex items-center justify-between p-4 bg-gray-200 rounded-t-lg">
-              <h3 className="text-lg font-semibold text-gray-900">Add Label</h3>
+              <h3 className="text-lg font-semibold text-gray-900">{t.devices.addLabel}</h3>
               <button
                 onClick={closeESLLabelModal}
                 className="text-gray-400 hover:text-gray-600 transition-colors"
@@ -1992,14 +1994,14 @@ export default function DevicesPage() {
                     disabled={eslLabelSubmitting}
                     className="px-4 py-2 text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors disabled:opacity-50"
                   >
-                    Cancel
+                    {t.common.cancel}
                   </button>
                   <button
                     type="submit"
                     disabled={eslLabelSubmitting}
                     className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50"
                   >
-                    {eslLabelSubmitting ? 'Confirming...' : 'Confirm'}
+                    {eslLabelSubmitting ? t.devices.confirming : t.common.confirm}
                   </button>
                 </div>
               </form>
@@ -2014,7 +2016,7 @@ export default function DevicesPage() {
           <div className="fixed inset-0 bg-black/50 transition-opacity" onClick={closeBindModal} />
           <div className="relative bg-white rounded-lg shadow-xl max-w-md w-full mx-4 transform transition-all">
             <div className="flex items-center justify-between p-4 bg-gray-200 rounded-t-lg">
-              <h3 className="text-lg font-semibold text-gray-900">Bind ESL Label</h3>
+              <h3 className="text-lg font-semibold text-gray-900">{t.devices.bindEslLabel}</h3>
               <button onClick={closeBindModal} className="text-gray-400 hover:text-gray-600 transition-colors">
                 <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
@@ -2070,7 +2072,7 @@ export default function DevicesPage() {
                     <span className="text-red-500">*</span> Template
                   </label>
                   {bindModalTemplatesLoading ? (
-                    <div className="text-sm text-gray-500 py-2">Loading templates...</div>
+                    <div className="text-sm text-gray-500 py-2">{t.devices.loadingTemplates}</div>
                   ) : (
                     <select
                       value={bindModalTemplateId}
@@ -2095,14 +2097,14 @@ export default function DevicesPage() {
                     disabled={bindSubmitting}
                     className="px-4 py-2 text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors disabled:opacity-50"
                   >
-                    Cancel
+                    {t.common.cancel}
                   </button>
                   <button
                     type="submit"
                     disabled={bindSubmitting}
                     className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50"
                   >
-                    {bindSubmitting ? 'Binding...' : 'Bind'}
+                    {bindSubmitting ? t.devices.binding : t.devices.bind}
                   </button>
                 </div>
               </form>
@@ -2135,7 +2137,7 @@ export default function DevicesPage() {
                   onClick={() => setConfirmModal(prev => ({ ...prev, isOpen: false }))}
                   className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500 transition-colors"
                 >
-                  Cancel
+                  {t.common.cancel}
                 </button>
                 <button
                   onClick={() => confirmModal.onConfirm()}

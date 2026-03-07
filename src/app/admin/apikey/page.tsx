@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { useToast } from '@/components/ui/ToastProvider';
+import { useLanguage } from '@/contexts/LanguageContext';
 
 interface RequestData {
   id: number;
@@ -23,6 +24,7 @@ interface RequestData {
 }
 
 export default function ApiKeyPage() {
+  const { t } = useLanguage();
   const { showToast } = useToast();
   const [apiKey, setApiKey] = useState('');
   const [managerId, setManagerId] = useState('');
@@ -223,21 +225,21 @@ export default function ApiKeyPage() {
   return (
     <div className="space-y-4 sm:space-y-6">
       <div className="px-4 sm:px-0">
-        <h1 className="text-xl sm:text-2xl font-bold text-gray-800">API Key</h1>
+        <h1 className="text-xl sm:text-2xl font-bold text-gray-800">{t.apiKey.title}</h1>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
         {/* Generate API Key Section */}
         <div className="bg-white rounded-lg shadow p-4 sm:p-6 mx-4 sm:mx-0">
-          <h2 className="text-base sm:text-lg font-semibold text-gray-800 mb-2 sm:mb-3">Generate API Key</h2>
+          <h2 className="text-base sm:text-lg font-semibold text-gray-800 mb-2 sm:mb-3">{t.apiKey.generateKey}</h2>
           <p className="text-xs sm:text-sm text-gray-600 mb-4 sm:mb-6">
-            Create a new API key for accessing the inventory system.
+            {t.apiKey.generateKeySubtitle}
           </p>
 
           <div className="space-y-3 sm:space-y-4">
             <div>
               <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-1 sm:mb-2">
-                Generated API Key
+                {t.apiKey.generatedApiKeyLabel}
               </label>
               <div className="flex flex-col sm:flex-row gap-2">
                 <input
@@ -248,18 +250,18 @@ export default function ApiKeyPage() {
                   className="flex-1 min-w-0 px-3 sm:px-4 py-2 border border-gray-300 rounded-lg bg-gray-50 text-xs sm:text-sm font-mono overflow-hidden text-ellipsis"
                 />
                 <button
-                  onClick={() => copyToClipboard(apiKey, 'API Key')}
+                  onClick={() => copyToClipboard(apiKey, t.apiKey.copyApiKey)}
                   disabled={!apiKey}
                   className="px-3 sm:px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:bg-gray-300 disabled:cursor-not-allowed transition-colors text-xs sm:text-sm whitespace-nowrap flex-shrink-0"
                 >
-                  Copy
+                  {t.apiKey.copyApiKey}
                 </button>
               </div>
             </div>
 
             <div>
               <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-1 sm:mb-2">
-                Complete API URL
+                {t.apiKey.completeApiUrlLabel}
               </label>
               <div className="flex flex-col sm:flex-row gap-2">
                 <input
@@ -270,11 +272,11 @@ export default function ApiKeyPage() {
                   className="flex-1 min-w-0 px-3 sm:px-4 py-2 border border-gray-300 rounded-lg bg-gray-50 text-xs sm:text-sm font-mono overflow-hidden text-ellipsis"
                 />
                 <button
-                  onClick={() => copyToClipboard(completeUrl, 'API URL')}
+                  onClick={() => copyToClipboard(completeUrl, t.apiKey.copyEndpoint)}
                   disabled={!completeUrl}
                   className="px-3 sm:px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:bg-gray-300 disabled:cursor-not-allowed transition-colors text-xs sm:text-sm whitespace-nowrap flex-shrink-0"
                 >
-                  Copy
+                  {t.apiKey.copyEndpoint}
                 </button>
               </div>
             </div>
@@ -290,14 +292,14 @@ export default function ApiKeyPage() {
                     <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
                     <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
                   </svg>
-                  <span>Generating...</span>
+                  <span>{t.apiKey.generating}</span>
                 </>
               ) : (
                 <>
                   <svg className="w-4 h-4 sm:w-5 sm:h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z" />
                   </svg>
-                  <span>Generate Key</span>
+                  <span>{t.apiKey.generateKey}</span>
                 </>
               )}
             </button>
@@ -306,15 +308,15 @@ export default function ApiKeyPage() {
 
         {/* Export to External File Section */}
         <div className="bg-white rounded-lg shadow p-4 sm:p-6 mx-4 sm:mx-0">
-          <h2 className="text-base sm:text-lg font-semibold text-gray-800 mb-2 sm:mb-3">Export to external file</h2>
+          <h2 className="text-base sm:text-lg font-semibold text-gray-800 mb-2 sm:mb-3">{t.apiKey.exportTitle}</h2>
           <p className="text-xs sm:text-sm text-gray-600 mb-4 sm:mb-6">
-            Download inventory data in various formats for external use.
+            {t.apiKey.exportSubtitle}
           </p>
 
           <div className="bg-green-50 border border-green-200 rounded-lg p-3 sm:p-4 md:p-6 mb-4 sm:mb-6">
-            <h3 className="text-sm sm:text-base font-semibold text-gray-800 mb-2">Export to CSV file</h3>
+            <h3 className="text-sm sm:text-base font-semibold text-gray-800 mb-2">{t.apiKey.exportCsvTitle}</h3>
             <p className="text-xs sm:text-sm text-gray-600 mb-3 sm:mb-4">
-              CSV files are plaintext data files separated by commas, so they can be opened directly as Excel sheets and are a very useful file format for exporting and importing data from other programs.
+              {t.apiKey.exportCsvDescription}
             </p>
             <div className="flex flex-col sm:flex-row gap-2 sm:gap-3">
               <button
@@ -333,7 +335,7 @@ export default function ApiKeyPage() {
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
                   </svg>
                 )}
-                <span>View JSON</span>
+                <span>{t.apiKey.viewJson}</span>
               </button>
               <button
                 onClick={downloadCSV}
@@ -350,15 +352,15 @@ export default function ApiKeyPage() {
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
                   </svg>
                 )}
-                <span>Download CSV</span>
+                <span>{t.apiKey.downloadCsv}</span>
               </button>
             </div>
           </div>
 
           <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-3 sm:p-4">
-            <h4 className="text-xs sm:text-sm font-semibold text-gray-800 mb-1 sm:mb-2">CSV Structure</h4>
+            <h4 className="text-xs sm:text-sm font-semibold text-gray-800 mb-1 sm:mb-2">{t.apiKey.csvStructureTitle}</h4>
             <p className="text-xs text-gray-600 mb-2">
-              The CSV file will contain all subscription fields with resolved names:
+              {t.apiKey.csvStructureDescription}
             </p>
             <div className="bg-yellow-100 rounded px-2 sm:px-3 py-2 font-mono text-xs break-all overflow-x-auto">
               Item Name,Tag,Category,Location,Status
@@ -376,9 +378,9 @@ export default function ApiKeyPage() {
             </svg>
           </div>
           <div>
-            <h3 className="text-xs sm:text-sm font-medium text-blue-900">API Key Usage</h3>
+            <h3 className="text-xs sm:text-sm font-medium text-blue-900">{t.apiKey.usageTitle}</h3>
             <p className="text-xs sm:text-sm text-blue-700 mt-1">
-              The generated API key can be used to access inventory data programmatically. Include the API key in your requests to authenticate and retrieve data. Keep your API key secure and do not share it publicly. You can regenerate a new key at any time, which will invalidate the previous key.
+              {t.apiKey.usageDescription}
             </p>
           </div>
         </div>
@@ -389,7 +391,7 @@ export default function ApiKeyPage() {
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
           <div className="bg-white rounded-lg shadow-xl w-full max-w-4xl max-h-[80vh] flex flex-col">
             <div className="flex items-center justify-between p-4 border-b">
-              <h3 className="text-lg font-semibold text-gray-800">JSON Data - Unfinished Requests</h3>
+              <h3 className="text-lg font-semibold text-gray-800">{t.apiKey.jsonResponse}</h3>
               <div className="flex gap-2">
                 <button
                   onClick={() => {
@@ -398,11 +400,12 @@ export default function ApiKeyPage() {
                   }}
                   className="px-3 py-1.5 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm"
                 >
-                  Copy JSON
+                  {t.apiKey.copyJson}
                 </button>
                 <button
                   onClick={() => setShowJsonModal(false)}
                   className="p-1.5 text-gray-500 hover:text-gray-700 transition-colors"
+                  aria-label={t.common.close}
                 >
                   <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
@@ -417,7 +420,7 @@ export default function ApiKeyPage() {
             </div>
             <div className="p-4 border-t bg-gray-50 rounded-b-lg">
               <p className="text-xs text-gray-500">
-                Total records: {jsonData?.length || 0}
+                {t.apiKey.totalRecords}: {jsonData?.length || 0}
               </p>
             </div>
           </div>

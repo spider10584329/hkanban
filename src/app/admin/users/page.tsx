@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { CustomSelect } from '@/components/ui/CustomSelect';
+import { useLanguage } from '@/contexts/LanguageContext';
 
 interface User {
   id: number;
@@ -11,6 +12,7 @@ interface User {
 }
 
 export default function AdminUsersPage() {
+  const { t } = useLanguage();
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('');
   const [users, setUsers] = useState<User[]>([]);
@@ -78,7 +80,7 @@ export default function AdminUsersPage() {
   };
 
   const handleDeleteUser = async (userId: number) => {
-    if (!confirm('Are you sure you want to delete this user? This action cannot be undone.')) {
+    if (!confirm(t.users.confirmDelete)) {
       return;
     }
 
@@ -115,7 +117,7 @@ export default function AdminUsersPage() {
   if (loading) {
     return (
       <div className="flex items-center justify-center h-64">
-        <div className="text-gray-600">Loading users...</div>
+        <div className="text-gray-600">{t.users.loading}</div>
       </div>
     );
   }
@@ -130,13 +132,13 @@ export default function AdminUsersPage() {
             </svg>
           </div>
           <div>
-            <h3 className="text-sm font-medium text-red-900">Error Loading Users</h3>
+            <h3 className="text-sm font-medium text-red-900">{t.users.errorLoading}</h3>
             <p className="text-sm text-red-700 mt-1">{error}</p>
             <button
               onClick={fetchUsers}
               className="mt-3 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors text-sm"
             >
-              Try Again
+              {t.common.tryAgain}
             </button>
           </div>
         </div>
@@ -147,26 +149,26 @@ export default function AdminUsersPage() {
   return (
     <div className="space-y-4 sm:space-y-6 p-4 sm:p-0">
       <div>
-        <h1 className="text-xl sm:text-2xl font-bold text-gray-800">User Management</h1>
-        <p className="text-xs sm:text-sm text-gray-600 mt-1">Manage agent accounts and permissions</p>
+        <h1 className="text-xl sm:text-2xl font-bold text-gray-800">{t.users.title}</h1>
+        <p className="text-xs sm:text-sm text-gray-600 mt-1">{t.users.subtitle}</p>
       </div>
 
       {/* Stats Cards */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
         <div className="bg-white rounded-lg shadow p-4 sm:p-6">
-          <div className="text-xs sm:text-sm text-gray-600">Total Users</div>
+          <div className="text-xs sm:text-sm text-gray-600">{t.users.totalUsers}</div>
           <div className="text-xl sm:text-2xl font-bold text-gray-900 mt-1 sm:mt-2">{users.length}</div>
         </div>
         <div className="bg-green-50 rounded-lg shadow p-4 sm:p-6 border border-green-200">
-          <div className="text-xs sm:text-sm text-green-700 font-medium">Active</div>
+          <div className="text-xs sm:text-sm text-green-700 font-medium">{t.users.activeUsers}</div>
           <div className="text-xl sm:text-2xl font-bold text-green-700 mt-1 sm:mt-2">{activeCount}</div>
         </div>
         <div className="bg-gray-50 rounded-lg shadow p-4 sm:p-6 border border-gray-200">
-          <div className="text-xs sm:text-sm text-gray-700">Inactive/Pending</div>
+          <div className="text-xs sm:text-sm text-gray-700">{t.users.inactiveUsers}</div>
           <div className="text-xl sm:text-2xl font-bold text-gray-700 mt-1 sm:mt-2">{inactiveCount}</div>
         </div>
         <div className="bg-blue-50 rounded-lg shadow p-4 sm:p-6 border border-blue-200">
-          <div className="text-xs sm:text-sm text-blue-700">Active Today</div>
+          <div className="text-xs sm:text-sm text-blue-700">{t.users.activeToday}</div>
           <div className="text-xl sm:text-2xl font-bold text-blue-700 mt-1 sm:mt-2">0</div>
         </div>
       </div>
@@ -176,7 +178,7 @@ export default function AdminUsersPage() {
         <div className="p-4 sm:p-6 border-b border-gray-200 flex flex-col sm:flex-row gap-3 sm:gap-4">
           <input
             type="text"
-            placeholder="Search users by username..."
+            placeholder={t.users.searchPlaceholder}
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
             className="flex-1 px-3 sm:px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-gray-500 text-sm sm:text-base"
@@ -185,10 +187,10 @@ export default function AdminUsersPage() {
             value={statusFilter}
             onChange={setStatusFilter}
             options={[
-              { value: 'active', label: 'Active' },
-              { value: 'inactive', label: 'Inactive/Pending' },
+              { value: 'active', label: t.users.activeUsers },
+              { value: 'inactive', label: t.users.inactiveUsers },
             ]}
-            placeholder="All Status"
+            placeholder={t.common.allStatus}
             searchable={false}
             className="w-full sm:w-48"
           />
@@ -198,11 +200,11 @@ export default function AdminUsersPage() {
           <table className="w-full" style={{ minWidth: '600px' }}>
             <thead className="bg-gray-50">
               <tr>
-                <th className="px-3 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">User ID</th>
-                <th className="px-3 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Username</th>
+                <th className="px-3 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">ID</th>
+                <th className="px-3 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">{t.users.username}</th>
                 <th className="hidden md:table-cell px-3 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Manager ID</th>
-                <th className="px-3 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
-                <th className="px-3 sm:px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
+                <th className="px-3 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">{t.common.status}</th>
+                <th className="px-3 sm:px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">{t.common.actions}</th>
               </tr>
             </thead>
             <tbody className="bg-white divide-y divide-gray-200">
@@ -210,8 +212,8 @@ export default function AdminUsersPage() {
                 <tr>
                   <td colSpan={5} className="px-3 sm:px-6 py-12 text-center text-gray-500 text-sm">
                     {searchTerm || statusFilter !== ''
-                      ? 'No users found matching your filters.'
-                      : 'No users registered yet. Agents can register from the login page.'}
+                      ? t.common.noResults
+                      : t.users.noUsers}
                   </td>
                 </tr>
               ) : (
@@ -238,11 +240,11 @@ export default function AdminUsersPage() {
                     <td className="px-3 sm:px-6 py-3 sm:py-4 whitespace-nowrap">
                       {user.isActive === 1 ? (
                         <span className="px-2 sm:px-3 py-1 inline-flex text-xs leading-5 font-semibold rounded-full bg-green-100 text-green-800 border border-green-200">
-                          Active
+                          {t.common.active}
                         </span>
                       ) : (
                         <span className="px-2 sm:px-3 py-1 inline-flex text-xs leading-5 font-semibold rounded-full bg-gray-100 text-gray-800 border border-gray-200">
-                          Inactive
+                          {t.common.inactive}
                         </span>
                       )}
                     </td>
@@ -255,16 +257,16 @@ export default function AdminUsersPage() {
                               ? 'bg-yellow-100 text-yellow-700 hover:bg-yellow-200 border border-yellow-300'
                               : 'bg-green-100 text-green-700 hover:bg-green-200 border border-green-300'
                           }`}
-                          title={user.isActive === 1 ? 'Deactivate user' : 'Activate user'}
+                          title={user.isActive === 1 ? t.users.deactivate : t.users.activate}
                         >
-                          {user.isActive === 1 ? 'Deactivate' : 'Activate'}
+                          {user.isActive === 1 ? t.users.deactivate : t.users.activate}
                         </button>
                         <button
                           onClick={() => handleDeleteUser(user.id)}
                           className="px-2 sm:px-3 py-1 bg-red-100 text-red-700 hover:bg-red-200 border border-red-300 rounded-lg text-xs font-medium transition-colors whitespace-nowrap"
-                          title="Delete user"
+                          title={t.users.deleteUser}
                         >
-                          Delete
+                          {t.users.deleteUser}
                         </button>
                       </div>
                     </td>

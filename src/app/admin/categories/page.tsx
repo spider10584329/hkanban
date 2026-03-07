@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { useLanguage } from '@/contexts/LanguageContext';
 
 interface Category {
   id: number;
@@ -19,6 +20,7 @@ interface Stats {
 }
 
 export default function CategoriesPage() {
+  const { t } = useLanguage();
   const [categories, setCategories] = useState<Category[]>([]);
   const [stats, setStats] = useState<Stats>({
     totalCategories: 0,
@@ -140,11 +142,11 @@ export default function CategoriesPage() {
 
   const handleDelete = async (category: Category) => {
     if (category.productCount > 0) {
-      alert(`Cannot delete "${category.name}" because it has ${category.productCount} product(s). Please reassign or delete the products first.`);
+      alert(`${t.categories.cannotDelete} "${category.name}" ${t.categories.hasProducts} ${category.productCount} ${t.categories.productCount}`);
       return;
     }
 
-    if (!confirm(`Are you sure you want to delete "${category.name}"? This action cannot be undone.`)) {
+    if (!confirm(`${t.categories.confirmDelete} "${category.name}"? ${t.categories.confirmDeleteSuffix}`)) {
       return;
     }
 
@@ -186,7 +188,7 @@ export default function CategoriesPage() {
   if (loading) {
     return (
       <div className="flex items-center justify-center h-64">
-        <div className="text-gray-600">Loading categories...</div>
+        <div className="text-gray-600">{t.categories.loading}</div>
       </div>
     );
   }
@@ -201,13 +203,13 @@ export default function CategoriesPage() {
             </svg>
           </div>
           <div>
-            <h3 className="text-sm font-medium text-red-900">Error Loading Categories</h3>
+            <h3 className="text-sm font-medium text-red-900">{t.categories.errorLoading}</h3>
             <p className="text-sm text-red-700 mt-1">{error}</p>
             <button
               onClick={fetchCategories}
               className="mt-3 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors text-sm"
             >
-              Try Again
+              {t.common.tryAgain}
             </button>
           </div>
         </div>
@@ -219,30 +221,30 @@ export default function CategoriesPage() {
     <div className="space-y-6">
       <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4">
         <div>
-          <h1 className="text-2xl font-bold text-gray-800">Product Categories</h1>
-          <p className="text-sm text-gray-600 mt-1">Manage product categories (Linens, Towels, Toiletries, Medications, etc.)</p>
+          <h1 className="text-2xl font-bold text-gray-800">{t.categories.title}</h1>
+          <p className="text-sm text-gray-600 mt-1">{t.categories.subtitle}</p>
         </div>
         <button
           onClick={openCreateModal}
           className="px-4 py-2 bg-gray-900 text-white rounded-lg hover:bg-black transition-colors flex items-center justify-center gap-2 whitespace-nowrap"
         >
           <span>+</span>
-          <span>Add Category</span>
+          <span>{t.categories.addCategory}</span>
         </button>
       </div>
 
       {/* Stats Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
         <div className="bg-white rounded-lg shadow p-4 sm:p-6">
-          <div className="text-sm text-gray-600">Total Categories</div>
+          <div className="text-sm text-gray-600">{t.categories.totalCategories}</div>
           <div className="text-2xl font-bold text-gray-900 mt-2">{stats.totalCategories}</div>
         </div>
         <div className="bg-white rounded-lg shadow p-4 sm:p-6">
-          <div className="text-sm text-gray-600">Active Products</div>
+          <div className="text-sm text-gray-600">{t.categories.activeProducts}</div>
           <div className="text-2xl font-bold text-gray-900 mt-2">{stats.totalActiveProducts}</div>
         </div>
         <div className="bg-white rounded-lg shadow p-4 sm:p-6">
-          <div className="text-sm text-gray-600">Most Used</div>
+          <div className="text-sm text-gray-600">{t.categories.mostUsed}</div>
           <div className="text-2xl font-bold text-gray-900 mt-2">{stats.mostUsed || '-'}</div>
         </div>
       </div>
@@ -252,7 +254,7 @@ export default function CategoriesPage() {
         <div className="p-4 sm:p-6 border-b border-gray-200">
           <input
             type="text"
-            placeholder="Search categories..."
+            placeholder={t.categories.searchPlaceholder}
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
             className="w-full sm:w-96 px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-gray-500"
@@ -264,8 +266,8 @@ export default function CategoriesPage() {
           {filteredCategories.length === 0 ? (
             <div className="px-4 py-12 text-center text-gray-500 text-sm">
               {searchTerm
-                ? 'No categories found matching your search.'
-                : 'No categories found. Click "Add Category" to create one.'}
+                ? t.categories.noCategoriesSearch
+                : t.categories.noCategories}
             </div>
           ) : (
             filteredCategories.map((category) => (
@@ -293,13 +295,13 @@ export default function CategoriesPage() {
                           onClick={() => openEditModal(category)}
                           className="px-2 py-1 bg-gray-100 text-gray-700 hover:bg-gray-200 border border-gray-300 rounded text-xs font-medium"
                         >
-                          Edit
+                          {t.common.edit}
                         </button>
                         <button
                           onClick={() => handleDelete(category)}
                           className="px-2 py-1 bg-red-100 text-red-700 hover:bg-red-200 border border-red-300 rounded text-xs font-medium"
                         >
-                          Delete
+                          {t.common.delete}
                         </button>
                       </div>
                     </div>
@@ -315,11 +317,11 @@ export default function CategoriesPage() {
           <table className="w-full">
             <thead className="bg-gray-50">
               <tr>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Name</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Description</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Products</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Created</th>
-                <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">{t.common.name}</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">{t.common.description}</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">{t.categories.productsCount}</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">{t.common.createdAt}</th>
+                <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">{t.common.actions}</th>
               </tr>
             </thead>
             <tbody className="bg-white divide-y divide-gray-200">
@@ -327,8 +329,8 @@ export default function CategoriesPage() {
                 <tr>
                   <td colSpan={5} className="px-6 py-12 text-center text-gray-500">
                     {searchTerm
-                      ? 'No categories found matching your search.'
-                      : 'No categories found. Click "Add Category" to create one.'}
+                      ? t.categories.noCategoriesSearch
+                      : t.categories.noCategories}
                   </td>
                 </tr>
               ) : (
@@ -365,13 +367,13 @@ export default function CategoriesPage() {
                           onClick={() => openEditModal(category)}
                           className="px-3 py-1 bg-gray-100 text-gray-700 hover:bg-gray-200 border border-gray-300 rounded-lg text-xs font-medium transition-colors"
                         >
-                          Edit
+                          {t.common.edit}
                         </button>
                         <button
                           onClick={() => handleDelete(category)}
                           className="px-3 py-1 bg-red-100 text-red-700 hover:bg-red-200 border border-red-300 rounded-lg text-xs font-medium transition-colors"
                         >
-                          Delete
+                          {t.common.delete}
                         </button>
                       </div>
                     </td>
@@ -399,7 +401,7 @@ export default function CategoriesPage() {
                     </div>
                     <div className="mt-3 text-center sm:ml-4 sm:mt-0 sm:text-left w-full">
                       <h3 className="text-base sm:text-lg font-semibold leading-6 text-gray-900">
-                        {editingCategory ? 'Edit Category' : 'Add New Category'}
+                        {editingCategory ? t.categories.editCategory : t.categories.createCategory}
                       </h3>
                       <div className="mt-4 space-y-4">
                         {formError && (
@@ -409,7 +411,7 @@ export default function CategoriesPage() {
                         )}
                         <div>
                           <label htmlFor="name" className="block text-sm font-medium text-gray-700">
-                            Category Name <span className="text-red-500">*</span>
+                            {t.categories.categoryName}
                           </label>
                           <input
                             type="text"
@@ -423,7 +425,7 @@ export default function CategoriesPage() {
                         </div>
                         <div>
                           <label htmlFor="description" className="block text-sm font-medium text-gray-700">
-                            Description
+                            {t.common.description}
                           </label>
                           <textarea
                             id="description"
@@ -444,7 +446,7 @@ export default function CategoriesPage() {
                     disabled={submitting}
                     className="inline-flex w-full justify-center rounded-lg bg-gray-900 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-black disabled:bg-gray-400 sm:w-auto"
                   >
-                    {submitting ? 'Saving...' : editingCategory ? 'Save Changes' : 'Create Category'}
+                    {submitting ? t.common.saving : editingCategory ? t.common.save : t.categories.createCategory}
                   </button>
                   <button
                     type="button"
@@ -452,7 +454,7 @@ export default function CategoriesPage() {
                     disabled={submitting}
                     className="mt-3 sm:mt-0 inline-flex w-full justify-center rounded-lg bg-white px-4 py-2 text-sm font-semibold text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 hover:bg-gray-50 sm:w-auto"
                   >
-                    Cancel
+                    {t.common.cancel}
                   </button>
                 </div>
               </form>

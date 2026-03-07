@@ -131,7 +131,9 @@ export async function POST(request: NextRequest) {
     // updateGoodsToStore uses /apis/esl/goods/updateToStore (API 3.3):
     // permanently writes to the cloud goods record AND refreshes the ESL screen.
     const goodsId = (product as any).minewGoodsId || product.id.toString();
-    const orderDate = new Date().toISOString();
+    // Format order_date without year (MM-DD HH:mm) to fit the narrow label column
+    const _now = new Date();
+    const orderDate = `${String(_now.getMonth() + 1).padStart(2, '0')}-${String(_now.getDate()).padStart(2, '0')} ${String(_now.getHours()).padStart(2, '0')}:${String(_now.getMinutes()).padStart(2, '0')}`;
 
     try {
       const updateResult = await updateGoodsToStore(storeId, goodsId, {

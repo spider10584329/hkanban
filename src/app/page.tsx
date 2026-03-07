@@ -3,8 +3,10 @@
 import { useState, useEffect, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useToast } from '@/components/ui/ToastProvider';
+import { useLanguage } from '@/contexts/LanguageContext';
 
 function HomeContent() {
+    const { t } = useLanguage();
     const router = useRouter();
     const searchParams = useSearchParams();
     const { showToast } = useToast();
@@ -271,7 +273,7 @@ function HomeContent() {
                         <div className="max-w-md mx-auto w-full">
                             <div className="text-center mb-4 xl:mb-6 relative">
                                 <h1 className="text-lg sm:text-xl xl:text-2xl font-semibold text-gray-800 mb-2">
-                                    {isLogin ? 'Sign in to Your Account' : 'Create Your Account'}
+                                    {isLogin ? t.login.signInTitle : t.login.createAccountTitle}
                                 </h1>
 
                                 {/* Admin/Delegate Toggle Button - Only on Sign In */}
@@ -286,7 +288,7 @@ function HomeContent() {
                                                             : 'bg-transparent text-gray-600 hover:text-gray-900'
                                                         }`}
                                                 >
-                                                    Admin
+                                                    {t.layout.admin}
                                                 </button>
                                                 <button
                                                     onClick={() => setUserRole('agent')}
@@ -295,13 +297,13 @@ function HomeContent() {
                                                             : 'bg-transparent text-gray-600 hover:text-gray-900'
                                                         }`}
                                                 >
-                                                    Agent
+                                                    {t.layout.agent}
                                                 </button>
                                             </div>
                                         </div>
                                         {userRole === 'admin' && (
                                             <p className="text-xs text-gray-600 ">
-                                                You must sign up with a pulsepoint account.
+                                                {t.login.agentNote}
                                             </p>
                                         )}
                                     </div>
@@ -313,7 +315,7 @@ function HomeContent() {
                                 <div className="space-y-4 xl:space-y-2">
                                     <div>
                                         <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-2">
-                                            {userRole === 'admin' ? 'Manager Email' : 'Username'}
+                                            {userRole === 'admin' ? t.login.managerEmail : t.login.username}
                                         </label>
                                         <input
                                             type="email"
@@ -329,7 +331,7 @@ function HomeContent() {
 
                                     <div>
                                         <label htmlFor="password" className="block text-sm font-medium text-gray-700 mb-2">
-                                            Password
+                                            {t.login.password}
                                         </label>
                                         <input
                                             type="password"
@@ -348,7 +350,7 @@ function HomeContent() {
                                             disabled={submitLoading}
                                             className="w-full  bg-gray-900 text-white font-semibold py-2 px-6 rounded-lg hover:bg-black focus:outline-none disabled:opacity-50 disabled:cursor-not-allowed transition-all"
                                         >
-                                            {submitLoading ? 'Signing In...' : 'Sign In'}
+                                            {submitLoading ? t.login.signingIn : t.login.signIn}
                                         </button>
                                     </div>
 
@@ -358,7 +360,7 @@ function HomeContent() {
                                 <div className="space-y-4">
                                     <div>
                                         <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-2">
-                                            Manager Email *
+                                            {t.login.managerEmail} *
                                         </label>
                                         <input
                                             type="email"
@@ -374,7 +376,7 @@ function HomeContent() {
 
                                     <div>
                                         <label htmlFor="username" className="block text-sm font-medium text-gray-700 mb-2">
-                                            Username *
+                                            {t.login.username} *
                                         </label>
                                         <input
                                             type="text"
@@ -390,7 +392,7 @@ function HomeContent() {
 
                                     <div>
                                         <label htmlFor="password" className="block text-sm font-medium text-gray-700 mb-2">
-                                            Password *
+                                            {t.login.password} *
                                         </label>
                                         <input
                                             type="password"
@@ -409,7 +411,7 @@ function HomeContent() {
 
                                     <div>
                                         <label htmlFor="confirmPassword" className="block text-sm font-medium text-gray-700 mb-2">
-                                            Confirm Password *
+                                            {t.login.confirmPassword} *
                                         </label>
                                         <input
                                             type="password"
@@ -428,19 +430,19 @@ function HomeContent() {
                                         disabled={submitLoading}
                                         className="w-full bg-gray-900 text-white font-semibold py-2 px-6 rounded-lg hover:bg-black focus:outline-none disabled:opacity-50 disabled:cursor-not-allowed transition-all"
                                     >
-                                        {submitLoading ? 'Creating Account...' : 'Create Account'}
+                                        {submitLoading ? t.login.creatingAccount : t.login.createAccount}
                                     </button>
                                 </div>
                             )}
 
                             <div className="mt-1 ">
                                 <p className="text-gray-600 text-sm">
-                                    {isLogin ? "Don't have an account? " : "Already have an account? "}
+                                    {isLogin ? t.login.dontHaveAccount.split('?')[0] + '? ' : t.login.alreadyHaveAccount.split('?')[0] + '? '}
                                     <button
                                         onClick={() => setIsLogin(!isLogin)}
                                         className="text-gray-700 hover:text-black font-medium"
                                     >
-                                        {isLogin ? 'Register' : 'Sign in here'}
+                                        {isLogin ? t.login.register : t.login.signInHere}
                                     </button>
                                 </p>
                             </div>
