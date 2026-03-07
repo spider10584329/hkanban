@@ -539,14 +539,12 @@ export default function OrdersPage() {
                             {t.orders.markAsDelivered}
                           </button>
                         )}
-                        {order.status !== 'DELIVERED' && (
-                          <button
-                            onClick={() => handleDelete(order.id)}
-                            className="px-2 sm:px-3 py-1 bg-gray-100 text-gray-700 hover:bg-gray-200 border border-gray-300 rounded-lg text-xs font-medium transition-colors whitespace-nowrap"
-                          >
-                            {t.common.delete}
-                          </button>
-                        )}
+                        <button
+                          onClick={() => handleDelete(order.id)}
+                          className="px-2 sm:px-3 py-1 bg-gray-100 text-gray-700 hover:bg-gray-200 border border-gray-300 rounded-lg text-xs font-medium transition-colors whitespace-nowrap"
+                        >
+                          {t.common.delete}
+                        </button>
                       </div>
                     </td>
                   </tr>

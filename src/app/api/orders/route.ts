@@ -402,15 +402,16 @@ export async function DELETE(request: NextRequest) {
       );
     }
 
-    // Delete order and restore request statuses in transaction
+    // Delete order and, when applicable, restore request statuses in transaction
     await prisma.$transaction(async (tx) => {
       // Get request IDs that were linked to this order
       const requestIds = order.orderItems
         .filter(item => item.replenishmentRequestId)
         .map(item => item.replenishmentRequestId as number);
 
-      // Restore requests back to APPROVED status
-      if (requestIds.length > 0) {
+      // Only restore requests back to APPROVED when the order was NOT delivered.
+      // Delivered orders have already moved their requests to COMPLETED — leave them.
+      if (requestIds.length > 0 && order.status !== 'DELIVERED') {
         await tx.replenishmentRequest.updateMany({
           where: {
             id: { in: requestIds },

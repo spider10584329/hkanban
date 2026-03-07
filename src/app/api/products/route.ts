@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { getMinewToken, getDefaultStoreId, addToSyncQueue } from '@/lib/minewTokenManager';
+import { unbindESLTag } from '@/lib/minew';
 
 // GET - Fetch products by manager_id with category and supplier info
 export async function GET(request: NextRequest) {
@@ -561,7 +562,7 @@ export async function PUT(request: NextRequest) {
   }
 }
 
-// DELETE - Delete a product
+// DELETE - Delete a product and ALL related data (requests, order items, stock history)
 export async function DELETE(request: NextRequest) {
   try {
     const searchParams = request.nextUrl.searchParams;
@@ -574,17 +575,10 @@ export async function DELETE(request: NextRequest) {
       );
     }
 
-    // Check if product has order items or replenishment requests
+    const id = parseInt(productId);
+
     const product = await prisma.product.findUnique({
-      where: { id: parseInt(productId) },
-      include: {
-        _count: {
-          select: {
-            orderItems: true,
-            replenishmentRequests: true,
-          },
-        },
-      },
+      where: { id },
     });
 
     if (!product) {
@@ -594,97 +588,113 @@ export async function DELETE(request: NextRequest) {
       );
     }
 
-    if (product._count.orderItems > 0) {
-      return NextResponse.json(
-        { error: 'Cannot delete product with existing order items.' },
-        { status: 400 }
-      );
+    const productData: any = product;
+
+    // Step 1: Unbind ESL tag from Minew cloud if locally marked as bound.
+    // Ignore cloud errors — the tag may already be unbound on the cloud side.
+    let eslUnbindError: string | null = null;
+    if (productData.minewBoundLabel) {
+      try {
+        const storeId = await getDefaultStoreId();
+        if (storeId) {
+          const cleanMac = (productData.minewBoundLabel as string)
+            .replace(/[:-]/g, '')
+            .toLowerCase();
+          await unbindESLTag(storeId, cleanMac);
+          console.log(`[Product Delete] ESL tag ${cleanMac} unbound from Minew cloud`);
+        }
+      } catch (err) {
+        eslUnbindError = err instanceof Error ? err.message : 'ESL unbind error';
+        console.warn('[Product Delete] ESL unbind warning (continuing):', eslUnbindError);
+      }
     }
 
-    if (product._count.replenishmentRequests > 0) {
-      return NextResponse.json(
-        { error: 'Cannot delete product with existing replenishment requests.' },
-        { status: 400 }
-      );
-    }
-
-    // ✨ Delete from Minew Cloud if synced
+    // Step 2: Delete product from Minew cloud inventory if it was synced.
     let minewDeleteSuccess = false;
     let minewDeleteError: string | null = null;
 
-    const productData: any = product;
     if (productData.minewSynced === 1 && productData.minewGoodsId) {
       try {
-        console.log(`[Product Delete] Starting Minew deletion for product ${productId}`);
-        
-        // Get cached Minew credentials
         const token = await getMinewToken();
         const storeId = await getDefaultStoreId();
 
-        console.log(`[Product Delete] Token available: ${!!token}`);
-        console.log(`[Product Delete] StoreId available: ${!!storeId}, value: ${storeId}`);
-        console.log(`[Product Delete] Minew goodsId: ${productData.minewGoodsId}`);
-
         if (token && storeId) {
-          // Use batch delete endpoint as per API documentation (Section 3.5)
-          // Endpoint: /apis/esl/goods/batchDelete
-          // Parameters: storeId, idArray (array of product IDs to delete)
           const minewApiBase = process.env.MINEW_API_BASE || 'https://cloud.minewesl.com';
           const minewUrl = `${minewApiBase}/apis/esl/goods/batchDelete`;
-          
-          const requestBody = { 
-            storeId, 
-            idArray: [productData.minewGoodsId] // Array of product IDs
-          };
-          
-          console.log(`[Product Delete] Calling Minew API: ${minewUrl}`);
-          console.log(`[Product Delete] Request body:`, JSON.stringify(requestBody, null, 2));
-          
+
           const minewResponse = await fetch(minewUrl, {
             method: 'POST',
-            headers: { 
+            headers: {
               'Content-Type': 'application/json;charset=utf-8',
-              'token': token,
+              token,
             },
-            body: JSON.stringify(requestBody),
+            body: JSON.stringify({ storeId, idArray: [productData.minewGoodsId] }),
           });
 
           const minewResult = await minewResponse.json();
-          console.log(`[Product Delete] Minew API response:`, JSON.stringify(minewResult, null, 2));
 
           if (minewResult.code === 200) {
             minewDeleteSuccess = true;
-            console.log(`[Product ${productId}] Successfully deleted from Minew cloud`);
+            console.log(`[Product Delete] Deleted from Minew cloud: product ${id}`);
           } else {
             minewDeleteError = minewResult.msg || 'Minew delete failed';
-            console.error(`[Product ${productId}] Minew delete failed (code: ${minewResult.code}):`, minewDeleteError);
-            // Add to retry queue
-            await addToSyncQueue('product', parseInt(productId), 'delete', {
-              goodsId: productData.minewGoodsId
+            console.error(`[Product Delete] Minew delete failed:`, minewDeleteError);
+            // Queue for retry — do not block local deletion
+            await addToSyncQueue('product', id, 'delete', {
+              goodsId: productData.minewGoodsId,
             });
           }
         } else {
           minewDeleteError = token ? 'No Minew store found' : 'Cannot get Minew token';
-          console.error(`[Product ${productId}] Minew delete prerequisites failed:`, minewDeleteError);
         }
-      } catch (error) {
-        minewDeleteError = error instanceof Error ? error.message : 'Unknown delete error';
-        console.error('[Product Delete] Minew delete error:', error);
-        // Don't block local deletion if Minew delete fails
+      } catch (err) {
+        minewDeleteError = err instanceof Error ? err.message : 'Minew delete error';
+        console.error('[Product Delete] Minew delete error:', err);
+        // Do not block local deletion
       }
-    } else {
-      console.log(`[Product ${productId}] Skipping Minew deletion - synced: ${productData.minewSynced}, goodsId: ${productData.minewGoodsId}`);
     }
 
-    // Delete from local database regardless of Minew sync status
-    await prisma.product.delete({
-      where: { id: parseInt(productId) },
+    // Step 3: Cascade-delete all related local data in a single transaction.
+    await prisma.$transaction(async (tx) => {
+      // 3a. Null out replenishmentRequestId on order_items that are linked to
+      //     replenishment requests for this product. This breaks the FK so the
+      //     requests can be safely deleted next.
+      await tx.$executeRaw`
+        UPDATE order_items oi
+        INNER JOIN replenishment_requests rr ON rr.id = oi.replenishmentRequestId
+        SET oi.replenishmentRequestId = NULL,
+            oi.updatedAt = ${new Date()}
+        WHERE rr.productId = ${id}
+      `;
+
+      // 3b. Delete all replenishment requests for this product.
+      await tx.replenishmentRequest.deleteMany({
+        where: { productId: id },
+      });
+
+      // 3c. Delete all order items that directly reference this product.
+      await tx.orderItem.deleteMany({
+        where: { productId: id },
+      });
+
+      // 3d. Delete stock history records for this product.
+      await tx.stockHistory.deleteMany({
+        where: { productId: id },
+      });
+
+      // 3e. Finally delete the product itself.
+      await tx.product.delete({
+        where: { id },
+      });
     });
 
-    return NextResponse.json({ 
+    console.log(`[Product Delete] Product ${id} and all related data deleted successfully`);
+
+    return NextResponse.json({
       success: true,
       minewDeleteSuccess,
       minewDeleteError,
+      eslUnbindError,
     });
   } catch (error) {
     console.error('Error deleting product:', error);
