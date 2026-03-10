@@ -246,7 +246,7 @@ export default function ApiKeyPage() {
                   type="text"
                   value={apiKey}
                   readOnly
-                  placeholder="Click 'Generate Key'"
+                  placeholder={t.apiKey.apiKeyPlaceholder}
                   className="flex-1 min-w-0 px-3 sm:px-4 py-2 border border-gray-300 rounded-lg bg-gray-50 text-xs sm:text-sm font-mono overflow-hidden text-ellipsis"
                 />
                 <button
@@ -268,7 +268,7 @@ export default function ApiKeyPage() {
                   type="text"
                   value={completeUrl}
                   readOnly
-                  placeholder="URL will appear here"
+                  placeholder={t.apiKey.urlPlaceholder}
                   className="flex-1 min-w-0 px-3 sm:px-4 py-2 border border-gray-300 rounded-lg bg-gray-50 text-xs sm:text-sm font-mono overflow-hidden text-ellipsis"
                 />
                 <button
@@ -363,7 +363,7 @@ export default function ApiKeyPage() {
               {t.apiKey.csvStructureDescription}
             </p>
             <div className="bg-yellow-100 rounded px-2 sm:px-3 py-2 font-mono text-xs break-all overflow-x-auto">
-              Item Name,Tag,Category,Location,Status
+              {t.apiKey.csvStructureFields}
             </div>
           </div>
         </div>

@@ -287,9 +287,9 @@ export default function AdminUsersPage() {
             </svg>
           </div>
           <div>
-            <h3 className="text-xs sm:text-sm font-medium text-blue-900">User Registration Process</h3>
+            <h3 className="text-xs sm:text-sm font-medium text-blue-900">{t.users.registrationProcessTitle}</h3>
             <p className="text-xs sm:text-sm text-blue-700 mt-1">
-              Agents register through the main login page. Their email is verified against PulsePoint system, and accounts are created with "Inactive" status by default. As an administrator, you must activate users before they can access the system. Active users can scan QR codes and create replenishment requests.
+              {t.users.registrationProcessDescription}
             </p>
           </div>
         </div>

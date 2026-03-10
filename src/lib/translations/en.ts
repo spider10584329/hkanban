@@ -418,6 +418,8 @@ const en = {
     deactivate: 'Deactivate',
     activate: 'Activate',
     deleteUser: 'Delete',
+    registrationProcessTitle: 'User Registration Process',
+    registrationProcessDescription: 'Agents register through the main login page. Their email is verified against PulsePoint system, and accounts are created with "Inactive" status by default. As an administrator, you must activate users before they can access the system. Active users can scan QR codes and create replenishment requests.',
   },
 
   // API Key
@@ -449,7 +451,11 @@ const en = {
     exportCsvTitle: 'Export to CSV file',
     exportCsvDescription: 'CSV files are plaintext data files separated by commas, so they can be opened directly as Excel sheets and are a very useful file format for exporting and importing data from other programs.',
     csvStructureTitle: 'CSV Structure',
-    csvStructureDescription: 'The CSV file will contain all subscription fields with resolved names:',
+    csvStructureDescription: 'The CSV file contains the product name, its ESL tag, location, and status information:',
+
+    csvStructureFields: 'Item Name,Tag,Category,Location,Status',
+    apiKeyPlaceholder: "Click 'Generate New API Key'",
+    urlPlaceholder: 'URL will appear here',
     usageTitle: 'API Key Usage',
     usageDescription: 'The generated API key can be used to access inventory data programmatically. Include the API key in your requests to authenticate and retrieve data. Keep your API key secure and do not share it publicly. You can regenerate a new key at any time, which will invalidate the previous key.',
     copyJson: 'Copy JSON',

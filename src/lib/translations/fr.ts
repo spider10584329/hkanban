@@ -420,6 +420,8 @@ const fr: TranslationKey = {
     deactivate: 'Désactiver',
     activate: 'Activer',
     deleteUser: 'Supprimer',
+    registrationProcessTitle: "Processus d'inscription des utilisateurs",
+    registrationProcessDescription: "Les agents s'inscrivent via la page de connexion principale. Leur adresse e-mail est vérifiée dans le système PulsePoint et les comptes sont créés avec le statut \"Inactif\" par défaut. En tant qu'administrateur, vous devez activer les utilisateurs avant qu'ils puissent accéder au système. Les utilisateurs actifs peuvent scanner des codes QR et créer des demandes de réapprovisionnement.",
   },
 
   // API Key
@@ -451,7 +453,11 @@ const fr: TranslationKey = {
     exportCsvTitle: 'Exporter vers un fichier CSV',
     exportCsvDescription: "Les fichiers CSV sont des fichiers de données en texte brut séparés par des virgules, ils peuvent être ouverts directement comme des feuilles Excel et sont un format de fichier très utile pour exporter et importer des données depuis d'autres programmes.",
     csvStructureTitle: 'Structure CSV',
-    csvStructureDescription: 'Le fichier CSV contiendra tous les champs avec les noms résolus :',
+    csvStructureDescription: "Le fichier CSV contient le nom du produit, son étiquette ESL, l'emplacement et les informations de statut :",
+
+    csvStructureFields: "Nom de l'article,Étiquette,Catégorie,Emplacement,Statut",
+    apiKeyPlaceholder: "Cliquez sur 'Générer une nouvelle clé API'",
+    urlPlaceholder: "L'URL apparaîtra ici",
     usageTitle: 'Utilisation de la clé API',
     usageDescription: "La clé API générée peut être utilisée pour accéder aux données d'inventaire par programmation. Incluez la clé API dans vos requêtes pour vous authentifier et récupérer des données. Gardez votre clé API sécurisée et ne la partagez pas publiquement. Vous pouvez régénérer une nouvelle clé à tout moment, ce qui invalidera la clé précédente.",
     copyJson: 'Copier le JSON',
